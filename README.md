@@ -1,0 +1,1 @@
+Building an general purpose approximation mechanism in Hadoop, surpport approximations on any subset of the original data set.
