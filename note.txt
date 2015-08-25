@@ -1,0 +1,93 @@
+Main()
+
+	boolean success = job.waitForCompletion(true);
+
+Job.java
+
+	waitForCompletion
+
+	if (state == JobState.DEFINE) {
+      submit();
+    }
+
+    public void submit() throws IOException, InterruptedException, 
+                              ClassNotFoundException {
+    ensureState(JobState.DEFINE);
+    setUseNewAPI();
+    
+    // Connect to the JobTracker and submit the job
+    connect();
+    info = jobClient.submitJobInternal(conf);
+    super.setJobID(info.getID());
+    state = JobState.RUNNING;
+   }
+
+JobClient.java
+
+	
+
+	this.rpcJobSubmitClient = 
+          createRPCProxy(JobTracker.getAddress(conf), conf);
+    this.jobSubmitClient = createProxy(this.rpcJobSubmitClient, conf);
+
+
+    status = jobSubmitClient.submitJob(
+              jobId, submitJobDir.toString(), jobCopy.getCredentials());
+
+JobTracker.java
+	
+	submitJob()
+
+		status = addJob(jobId, job);
+
+	(details from this step to next is in this site http://www.jiancool.com/article/8165570161/;jsessionid=DA095379D6634B03536D6B2FD3286707)
+
+	public void initJob(JobInProgress job)
+
+	job.initTasks();
+
+JobinProgress.java->
+	
+	TaskSplitMetaInfo[] splits = createSplits(jobId);
+
+		TaskSplitMetaInfo[] allTaskSplitMetaInfo =
+	      SplitMetaInfoReader.readSplitMetaInfo(jobId, fs, jobtracker.getConf(),
+	          jobSubmitDir);
+		SplitMetaInfoReader
+			mapreduce.jobtracker.split.metainfo.maxsize
+
+			read in SplitMetaInfo[]
+			construct TaskSplitIndex (split file path and start offset of a split)
+			construct TaskSplitMetaInfo (TaskSplitIndex, splits locations, split length)
+
+	maps[i] = new TaskInProgress(jobId, jobFile, 
+                                   splits[i], 
+                                   jobtracker, conf, this, i, numSlotsPerMap);
+
+TaskInProgress.java
+
+	t = new MapTask(jobFile, taskid, partition, splitInfo.getSplitIndex(),
+                      numSlotsNeeded);
+MapTask.java
+
+	runNewMapper(job, splitMetaInfo, umbilical, reporter);
+
+	org.apache.hadoop.mapreduce.InputSplit split = null;
+    split = getSplitDetails(new Path(splitIndex.getSplitLocation()),
+        splitIndex.getStartOffset());
+
+********************************************************************************************************
+
+SampleSplit  serialization
+
+SampleSplit is written to file
+
+most important SampleSplit meta including: 
+
+1. split serialization file path: JobSubmissionFiles.getJobSplitFile(jobSubmitDir).toString()
+
+2. offset of a split in serialization file: recorded by SplitWriter
+
+3. splits locations: interface of InputSplit
+
+4. split length: interface of InputSplit
