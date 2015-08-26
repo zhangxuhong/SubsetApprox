@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.mapreduce.lib.input;
+package org.apache.hadoop.mapreduce.approx.lib.input;
 
 import java.io.IOException;
 import java.io.DataInput;
@@ -34,8 +34,10 @@ import org.apache.hadoop.io.Writable;
  * {@link InputFormat#createRecordReader(InputSplit,TaskAttemptContext)}. */
 public class SampleFileSplit extends InputSplit implements Writable {
   private Path file;
-  private long start;
-  private long length;
+  private long[] start;
+  private long[] length;
+  private long totLength;
+  private String[] keys;
   private String[] hosts;
 
   SampleFileSplit() {}
@@ -47,25 +49,44 @@ public class SampleFileSplit extends InputSplit implements Writable {
    * @param length the number of bytes in the file to process
    * @param hosts the list of hosts containing the block, possibly null
    */
-  public SampleFileSplit(Path file, long start, long length, String[] hosts) {
+  public SampleFileSplit(Path file, long[] start, long[] length, String[] keys, String[] hosts) {
     this.file = file;
     this.start = start;
     this.length = length;
+    this.keys = keys;
     this.hosts = hosts;
+    this.totLength = 0;
+    for(long len : length){
+      totLength += len;
+    }
   }
  
   /** The file containing this split's data. */
   public Path getPath() { return file; }
   
   /** The position of the first byte in the file to process. */
-  public long getStart() { return start; }
+  public long[] getStart() { return start; }
+
+  public long getStart(i){
+    return start[i];
+  }
   
   /** The number of bytes in the file to process. */
   @Override
-  public long getLength() { return length; }
+  public long getLength() { return totLength; }
 
+  public long getLength(i){
+    return length[i];
+  }
+
+  public String[] getKeys() {return keys;}
+  public String getKeys(i){
+    return keys[i];
+  }
+
+  //*************************************************need modification*********************************
   @Override
-  public String toString() { return file + ":" + start + "+" + length; }
+  public String toString() { return file + ":" + start.length + "+" + length.length; }
 
   ////////////////////////////////////////////
   // Writable methods
@@ -74,15 +95,40 @@ public class SampleFileSplit extends InputSplit implements Writable {
   @Override
   public void write(DataOutput out) throws IOException {
     Text.writeString(out, file.toString());
-    out.writeLong(start);
-    out.writeLong(length);
+    out.writeLong(totLength);
+    out.writeInt(start.length);
+    for(long s : start){
+      out.writeLong(s);
+    }
+    out.writeInt(length.length);
+    for(long len : length){
+      out.writeLong(len);
+    }
+    out.writeInt(keys.length);
+    for(long key : keys){
+      Text.writeString(out, key);
+    }
   }
 
   @Override
   public void readFields(DataInput in) throws IOException {
     file = new Path(Text.readString(in));
-    start = in.readLong();
-    length = in.readLong();
+    totLength = in.readLong();
+    int startLength = in.readInt();
+    start = new long[startLength];
+    for(int i=0; i<startLength;i++) {
+      start[i] = in.readLong();
+    }
+    int arrLength = in.readInt();
+    length = new long[arrLength];
+    for(int i=0; i<arrLength;i++){
+      length[i] = in.readLong();
+    }
+    int keysLength = in.readInt();
+    keys = new String[keysLength];
+    for(int i=0; i<keysLength;i++){
+      keys[i] = Text.readString(in);
+    }
     hosts = null;
   }
 
