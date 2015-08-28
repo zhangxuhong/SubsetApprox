@@ -35,6 +35,8 @@ public class SegmentsMap {
 
   	public Segment[] getSampleSegmentsList(double ratio){
 
+
+  		//array need to be sorted based offset.
   		return null;
   	}
 

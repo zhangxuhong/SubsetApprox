@@ -91,3 +91,12 @@ most important SampleSplit meta including:
 3. splits locations: interface of InputSplit
 
 4. split length: interface of InputSplit
+
+
+/***********************************************************
+directly generate samples for subset of whole data without pre-filtering out subset.
+
+workload
+
+
+how traditional mr do computations: draw digram

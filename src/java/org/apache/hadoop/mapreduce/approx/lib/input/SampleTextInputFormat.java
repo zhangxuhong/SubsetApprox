@@ -441,7 +441,7 @@ public abstract class SampleInputFormat<K, V> extends FileInputFormat<K, V>{
         } else {
           ArrayList<OneBlockInfo> blocksList = new ArrayList<OneBlockInfo>(
               locations.length);
-          for (int i = 0; i < locations.length; i++) {
+          for (int i = 0, j= 0; i < locations.length; i++) {
             fileSize += locations[i].getLength();
             //**************************segments to block*************************************
             // each split can be a maximum of maxSize
@@ -449,8 +449,10 @@ public abstract class SampleInputFormat<K, V> extends FileInputFormat<K, V>{
             long blkOffset = locations[i].getOffset();
             ArrayList<long> segmentOffsets = new ArrayList<long>();
             ArrayList<long> segmentLengths = new ArrayList<long>();
-            for(Segment seg : sampleSegList){
-            	if(seg.getOffset())
+            while(sampleSegList[j].getOffset() >= blkOffset && sampleSegList[j].getOffset() < blkOffset + blklength){
+            	segmentOffsets.add(sampleSegList[j].getOffset());
+            	segmentLengths.add(sampleSegList[j].getLength());
+            	j++;
             }
             
           	long[] myOffset = segmentOffsets.toArray(new long[segmentOffsets.size()]);
