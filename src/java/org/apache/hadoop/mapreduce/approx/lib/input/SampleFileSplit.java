@@ -67,7 +67,7 @@ public class SampleFileSplit extends InputSplit implements Writable {
   /** The position of the first byte in the file to process. */
   public long[] getStart() { return start; }
 
-  public long getStart(i){
+  public long getOffset(int i){
     return start[i];
   }
   
@@ -75,13 +75,17 @@ public class SampleFileSplit extends InputSplit implements Writable {
   @Override
   public long getLength() { return totLength; }
 
-  public long getLength(i){
+  public long getLength(int i){
     return length[i];
   }
 
   public String[] getKeys() {return keys;}
-  public String getKeys(i){
+  public String getKeys(int i){
     return keys[i];
+  }
+
+  public int getNumSegments(){
+    return start.length;
   }
 
   //*************************************************need modification*********************************
