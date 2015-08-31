@@ -29,7 +29,7 @@ public class SegmentsMap {
   		public long getLength(){
   			return length;
   		}
-
+      
       public String getKeys(){
         return keys;
       }
