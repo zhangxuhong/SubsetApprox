@@ -22,7 +22,7 @@ import java.io.*;
 import java.lang.reflect.*;
 
 import org.apache.hadoop.fs.FileSystem;
-
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -71,6 +71,10 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
         return false;
       }
     }
+    while(){
+      String currentValue = curReader.getCurrentValue();
+      
+    }
     return true;
   }
 
@@ -79,9 +83,16 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
   }
   
   public V getCurrentValue() throws IOException, InterruptedException {
-    return curReader.getCurrentValue();
+    Text currentValue = curReader.getCurrentValue();
+    currentValue = new Text(currentValue.toString() + "+" + String.valueOf(idx-1));
+    return currentValue;
   }
   
+
+  public String getCurrentSegKeys(int segid){
+    return split.getKeys(segid);
+  }
+
   public void close() throws IOException {
     if (curReader != null) {
       curReader.close();

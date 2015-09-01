@@ -100,3 +100,6 @@ workload
 
 
 how traditional mr do computations: draw digram
+
+
+sendvalue for all weights
