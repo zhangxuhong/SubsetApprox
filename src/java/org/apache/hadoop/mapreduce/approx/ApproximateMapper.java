@@ -27,26 +27,26 @@ import org.apache.log4j.Logger;
 /**
  * Mapper that allows sending parameters to all the reducers for multistage sampling.
  */
-public abstract class MultistageSamplingMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends WritableComparable> extends Mapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT> {
-	private static final Logger LOG = Logger.getLogger(MultistageSamplingMapper.class);
+public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends WritableComparable> extends Mapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT> {
+	private static final Logger LOG = Logger.getLogger(ApproximateMapper.class);
 
 	// We keep track of this for multistage sampling
-	protected long m  =  0; // Sample size
-	protected long t  = -1; // Terciary cluster size. We don't use this by default
-	protected long s2 = -1; // Variance. We don't use this by default
+	//protected long m  =  0; // Sample size
+	//protected long t  = -1; // Terciary cluster size. We don't use this by default
+	//protected long s2 = -1; // Variance. We don't use this by default
 	
-	private int tmap = 0;
+	//private int tmap = 0;
 	
 	/**
 	 * This is a wrapper for Context that gets keys and adds an ID at the end to identify the cluster the data comes from.
 	 * Incremental doesn't require this only the default reducer.
 	 */
-	public class ClusteringContext extends Context {
+	public class ApproxContext extends Context {
 		Context context;
 		int sendTaskId = 0;
 		boolean precise = false;
 		
-		public ClusteringContext(Context context) throws IOException, InterruptedException {
+		public ApproxContext(Context context) throws IOException, InterruptedException {
 			// This is just a wrapper, so we don't create anything
 			super(context.getConfiguration(), context.getTaskAttemptID(), null, null, context.getOutputCommitter(), null, null);
 
@@ -63,7 +63,8 @@ public abstract class MultistageSamplingMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT ext
 		public void write(KEYOUT key, VALUEOUT value) throws IOException,InterruptedException {
 			if (!this.precise && key instanceof Text) {
 				// Sort method with just one more character at the end
-				byte[] byteId = new byte[] {(byte) (sendTaskId/128), (byte) (sendTaskId%128)};
+				int clusterID = getCurrentClusterID();
+				byte[] byteId = new byte[] {(byte) (sendTaskId/128), (byte) (sendTaskId%128), (byte) (clusterID/128), (byte) (clusterID%128)};
 				context.write((KEYOUT) new Text(key.toString()+new String(byteId)), value);
 				// Long method that is human readable
 				//context.write((KEYOUT) new Text(key.toString()+String.format("-%05d", sendTaskId)), value);
@@ -78,6 +79,15 @@ public abstract class MultistageSamplingMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT ext
 			return context.getProgress();
 		}
 		
+		private int getCurrentClusterID(){
+			RecordReader<KEYIN,VALUEIN> reader = context.getRecordReader();
+			int clusterID = -1;
+			if (reader instanceof SampleRecordReader) {
+				clusterID = ((SampleRecordReader)reader).getCurrentClusterID();
+			}
+			return clusterID;
+		}
+
 		@Override
 		public void progress() {
 			context.progress();
@@ -106,24 +116,21 @@ public abstract class MultistageSamplingMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT ext
 	public void run(Context context) throws IOException, InterruptedException {
 		setup(context);
 		
-		long t0 = System.currentTimeMillis();
+		//long t0 = System.currentTimeMillis();
 		
 		// Create the context that adds an id for clustering (just if requried)
 		Context newcontext = context;
 		// If we don't do incremental, we have to IDs to the keys
 		Configuration conf = context.getConfiguration();
 		
-		if (!conf.getBoolean("mapred.job.precise", false) && !conf.getBoolean("mapred.tasks.incremental.reduction", false)) {
-			newcontext = new ClusteringContext(context);
+		if (!conf.getBoolean("mapred.job.precise", false)) {
+			newcontext = new ApproxContext(context);
 		}
 		
 		while (context.nextKeyValue()) {
 			map(context.getCurrentKey(), context.getCurrentValue(), newcontext);
 			m++;
 		}
-		
-		// Calculate how long this took
-		tmap = (int) (System.currentTimeMillis()-t0)/1000;
 		
 		cleanup(context);
 	}
@@ -134,18 +141,6 @@ public abstract class MultistageSamplingMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT ext
 	 */
 	@Override
 	public void cleanup(Context context) throws IOException, InterruptedException {
-		// Get the the sampling ratio from the reader
-		long M = 1;
-		RecordReader<KEYIN,VALUEIN> reader = context.getReader();
-		if (reader instanceof SamplingRecordReader) {
-			M = ((SamplingRecordReader)reader).getPopulation();
-		}
-		
-		if (m>0) {
-			LOG.info("Cluster characteristics: m="+m+" M="+M+" M/m="+(M/m)+" t="+t+" s2="+s2);
-		} else {
-			LOG.info("Cluster characteristics: m="+m+" M="+M+" M/m=inf t="+t+" s2="+s2);
-		}
 		
 		// We send the statistically relevant information to everybody if we are sampling
 		Configuration conf = context.getConfiguration();
@@ -153,59 +148,39 @@ public abstract class MultistageSamplingMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT ext
 			// Integer format
 			if (IntWritable.class.equals(context.getMapOutputValueClass())) {
 				if (m >= 0) {
-					sendValue(context, MultistageSamplingReducer.m_SAMPLED, (int) m);
+					sendValue(context, ApproximateReducer.m_SAMPLED, (int) m);
 				}
 				if (t >= 0) {
-					sendValue(context, MultistageSamplingReducer.T_SAMPLED, (int) t);
+					sendValue(context, ApproximateReducer.T_SAMPLED, (int) t);
 				}
 				if (s2 >= 0 || s2 == -3) {
-					sendValue(context, MultistageSamplingReducer.S_SAMPLED, (int) s2);
+					sendValue(context, ApproximateReducer.S_SAMPLED, (int) s2);
 				}
-				sendValue(context, MultistageSamplingReducer.M_SAMPLED, (int) M);
-				sendValue(context, MultistageSamplingReducer.t_SAMPLED, (int) tmap);
+				sendValue(context, ApproximateReducer.M_SAMPLED, (int) M);
+				sendValue(context, ApproximateReducer.t_SAMPLED, (int) tmap);
 				// Send the cluster marks
-				sendValue(context, MultistageSamplingReducer.CLUSTERINI, 0);
-				sendValue(context, MultistageSamplingReducer.CLUSTERFIN, 0);
+				sendValue(context, ApproximateReducer.CLUSTERINI, 0);
+				sendValue(context, ApproximateReducer.CLUSTERFIN, 0);
 			// Long format
 			} else {
 				if (m >= 0) {
-					sendValue(context, MultistageSamplingReducer.m_SAMPLED, m);
+					sendValue(context, ApproximateReducer.m_SAMPLED, m);
 				}
 				if (t >= 0) {
-					sendValue(context, MultistageSamplingReducer.T_SAMPLED, t);
+					sendValue(context, ApproximateReducer.T_SAMPLED, t);
 				}
 				if (s2 >= 0 || s2 == -3) {
-					sendValue(context, MultistageSamplingReducer.S_SAMPLED, s2);
+					sendValue(context, ApproximateReducer.S_SAMPLED, s2);
 				}
-				sendValue(context, MultistageSamplingReducer.M_SAMPLED, (long) M);
-				sendValue(context, MultistageSamplingReducer.t_SAMPLED, (long) tmap);
+				sendValue(context, ApproximateReducer.M_SAMPLED, (long) M);
+				sendValue(context, ApproximateReducer.t_SAMPLED, (long) tmap);
 				// Send the cluster marks
-				sendValue(context, MultistageSamplingReducer.CLUSTERINI, 0L);
-				sendValue(context, MultistageSamplingReducer.CLUSTERFIN, 0L);
+				sendValue(context, ApproximateReducer.CLUSTERINI, 0L);
+				sendValue(context, ApproximateReducer.CLUSTERFIN, 0L);
 			}
 		}
 	}
 	
-	/**
-	 * Set the secondary (ssu) cluster size.
-	 */
-	protected void setM(long m) {
-		this.m = m;
-	}
-	
-	/**
-	 * Set the terciary (tsu) cluster size.
-	 */
-	protected void setT(long t) {
-		this.t = t;
-	}
-	
-	/**
-	 * Set the variance for this cluster.
-	 */
-	protected void setS(long s2) {
-		this.s2 = s2;
-	}
 	
 	/**
 	 * Send a parameter (inside of the data) to all reducers.
@@ -223,4 +198,8 @@ public abstract class MultistageSamplingMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT ext
 			context.write((KEYOUT) new Text(String.format(param, context.getTaskAttemptID().getTaskID().getId(), r)), (VALUEOUT) new IntWritable(value));
 		}
 	}
+
+	protected void sendWeights(Context context, )
+
+
 }

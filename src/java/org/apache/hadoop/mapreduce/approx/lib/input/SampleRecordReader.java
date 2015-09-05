@@ -103,6 +103,10 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
   }
   
 
+  public int getCurrentClusterID(){
+  	return idx-1;
+  }
+
   public String getCurrentSegKeys(int segid){
     return split.getKeys(segid);
   }
