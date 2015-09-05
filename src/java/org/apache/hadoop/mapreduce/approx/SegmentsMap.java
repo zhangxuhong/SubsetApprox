@@ -17,10 +17,15 @@ public class SegmentsMap {
   		private long offset;
   		private long length;
   		private String keys;
+      private String weights;
 
-  		public void addkey(String onekey){
+      public void addWeight(double weight){
+        weights = weights + "*+*" + String.valueOf(weight);
+      }
 
-  			keys = keys + "\t" + onekey;
+  		public void addKey(String onekey){
+
+  			keys = keys + "*+*" + onekey;
   		}
 
   		public long getOffset(){
@@ -32,6 +37,10 @@ public class SegmentsMap {
       
       public String getKeys(){
         return keys;
+      }
+
+      public String getWeights(){
+        return weights;
       }
   	}
 

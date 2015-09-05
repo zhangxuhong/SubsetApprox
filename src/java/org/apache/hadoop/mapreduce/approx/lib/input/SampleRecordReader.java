@@ -64,16 +64,30 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
     }
   }
   
+
   public boolean nextKeyValue() throws IOException, InterruptedException {
+    while(nextKeyValueOrg()){
+      String currentValue = this.getCurrentValue().toString().toLowerCase();
+      String[] keys = this.split.getKeys(idx-1).split("*+*");
+      for(String key : keys){
+        String[] fields = key.split("+*+");
+        for(String field : fields){
+          if(!currentValue.contains(key.toLowerCase())){
+            return false;
+          }
+        }
+        return true;
+      } 
+    }
+    return false;
+  }
+
+  public boolean nextKeyValueOrg() throws IOException, InterruptedException {
 
     while ((curReader == null) || !curReader.nextKeyValue()) {
       if (!initNextRecordReader()) {
         return false;
       }
-    }
-    while(){
-      String currentValue = curReader.getCurrentValue();
-      
     }
     return true;
   }
@@ -84,7 +98,7 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
   
   public V getCurrentValue() throws IOException, InterruptedException {
     Text currentValue = curReader.getCurrentValue();
-    currentValue = new Text(currentValue.toString() + "+" + String.valueOf(idx-1));
+    //currentValue = new Text(currentValue.toString() + "+" + String.valueOf(idx-1));
     return currentValue;
   }
   

@@ -39,7 +39,7 @@ public class SampleFileSplit extends InputSplit implements Writable {
   private long totLength;
   private String[] keys;
   private String[] hosts;
-
+  private String[] weights;
   SampleFileSplit() {}
 
   /** Constructs a split with host information
@@ -49,12 +49,13 @@ public class SampleFileSplit extends InputSplit implements Writable {
    * @param length the number of bytes in the file to process
    * @param hosts the list of hosts containing the block, possibly null
    */
-  public SampleFileSplit(Path file, long[] start, long[] length, String[] keys, String[] hosts) {
+  public SampleFileSplit(Path file, long[] start, long[] length, String[] keys, String weights, String[] hosts) {
     this.file = file;
     this.start = start;
     this.length = length;
     this.keys = keys;
     this.hosts = hosts;
+    this.weights = weights;
     this.totLength = 0;
     for(long len : length){
       totLength += len;
@@ -82,6 +83,11 @@ public class SampleFileSplit extends InputSplit implements Writable {
   public String[] getKeys() {return keys;}
   public String getKeys(int i){
     return keys[i];
+  }
+
+  public String[] getWeights() {return weights;}
+  public String getWeights(int i){
+    return weights[i];
   }
 
   public int getNumSegments(){
@@ -112,6 +118,10 @@ public class SampleFileSplit extends InputSplit implements Writable {
     for(long key : keys){
       Text.writeString(out, key);
     }
+    out.writeInt(weights.length);
+    for(long weight : weights){
+      Text.writeString(out, weight);
+    }
   }
 
   @Override
@@ -132,6 +142,11 @@ public class SampleFileSplit extends InputSplit implements Writable {
     keys = new String[keysLength];
     for(int i=0; i<keysLength;i++){
       keys[i] = Text.readString(in);
+    }
+    int weightsLength = in.readInt();
+    weights = new String[weightsLength];
+    for(int i=0; i<weightsLength;i++){
+      weights[i] = Text.readString(in);
     }
     hosts = null;
   }

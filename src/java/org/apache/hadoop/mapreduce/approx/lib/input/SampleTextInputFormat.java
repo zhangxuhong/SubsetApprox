@@ -378,16 +378,21 @@ public abstract class SampleInputFormat<K, V> extends FileInputFormat<K, V>{
     ArrayList<long> offset = new ArrayList<long>();
     ArrayList<long> length = new ArrayList<long>();
     ArrayList<String> key = new ArrayList<String>();
+    ArrayList<String> weight = new ArrayList<String>();
     for (int i = 0; i < validBlocks.size(); i++) {
       //fl[i] = validBlocks.get(i).onepath; 
       offset.addAll(Arrays.asList(validBlocks.get(i).segOffset));
       length.addAll(Arrays.asList(validBlocks.get(i).segLength));
       key.addAll(Arrays.asList(validBlocks.get(i).segKeys));
+      weight.addAll(Arrays.asList(validBlocks.get(i).segmentWeights));
     }
 
      // add this split to the list that is returned
     SampleFileSplit thissplit = new SampleFileSplit(fl, offset.toArray(new long[offset.size()]), 
-                                   length.toArray(new long[length.size()]), key.toArray(new String[key.size()]), locations.toArray(new String[0]));
+                                   length.toArray(new long[length.size()]), 
+                                   key.toArray(new String[key.size()]), 
+                                   weight.toArray(new String[weight.size()]),
+                                   locations.toArray(new String[0]));
     splitList.add(thissplit); 
   }
 
@@ -452,20 +457,23 @@ public abstract class SampleInputFormat<K, V> extends FileInputFormat<K, V>{
             ArrayList<long> segmentOffsets = new ArrayList<long>();
             ArrayList<long> segmentLengths = new ArrayList<long>();
             ArrayList<String> segmentKeys = new ArrayList<String>();
+            ArrayList<String> segmentWeights = new ArrayList<String>();
             while(sampleSegList[j].getOffset() >= blkOffset && sampleSegList[j].getOffset() < blkOffset + blklength){
             	segmentOffsets.add(sampleSegList[j].getOffset());
             	segmentLengths.add(sampleSegList[j].getLength());
               segmentKeys.add(sampleSegList[j].getKeys());
+              segmentWeights.add(sampleSegList[j].getWeights())
             	j++;
             }
             
           	long[] myOffset = segmentOffsets.toArray(new long[segmentOffsets.size()]);
           	long[] myLength = segmentLengths.toArray(new long[segmentLengths.size()]);
-            String[] mykey = segmentKeys.toArray(new long[segmentKeys.size()]);
+            String[] mykey = segmentKeys.toArray(new String[segmentKeys.size()]);
+            String[] myweight = segmentWeights.toArray(new String[segmentWeights.size()]);
 
             //******************************************add segment info*************************
             OneBlockInfo oneblock = new OneBlockInfo(path, myOffset,
-                myLength, mykey, locations[i].getHosts(), locations[i]
+                myLength, mykey, myweight, locations[i].getHosts(), locations[i]
                     .getTopologyPaths());
             //left -= myLength;
             //myOffset += myLength;
@@ -533,17 +541,19 @@ public abstract class SampleInputFormat<K, V> extends FileInputFormat<K, V>{
     Path onepath;                // name of this file
     long[] segOffset;                 // offset in file
     long[] segLength;
+    String[] segWeights;
     String[] segKeys;
     long length;                 // length of this block
     String[] hosts;              // nodes on which this block resides
     String[] racks;              // network topology of hosts
 
-    OneBlockInfo(Path path, long[] offset, long[] len, String[] keys,
+    OneBlockInfo(Path path, long[] offset, long[] len, String[] keys, String[] weights,
                  String[] hosts, String[] topologyPaths) {
       this.onepath = path;
       this.segOffset = offset;
       this.hosts = hosts;
       this.segLength = len;
+      this.segWeights = weights;
       this.segKeys = keys;
       this.length = 0;
       for(long onelen : len){
