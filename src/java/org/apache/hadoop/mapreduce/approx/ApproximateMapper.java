@@ -1,6 +1,7 @@
 package org.apache.hadoop.mapreduce.approx;
 
 import java.io.IOException;
+import java.lang.Double;
 
 import org.apache.hadoop.mapreduce.Mapper;
 
@@ -25,17 +26,10 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.log4j.Logger;
 
 /**
- * Mapper that allows sending parameters to all the reducers for multistage sampling.
+ * 
  */
 public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends WritableComparable> extends Mapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT> {
 	private static final Logger LOG = Logger.getLogger(ApproximateMapper.class);
-
-	// We keep track of this for multistage sampling
-	//protected long m  =  0; // Sample size
-	//protected long t  = -1; // Terciary cluster size. We don't use this by default
-	//protected long s2 = -1; // Variance. We don't use this by default
-	
-	//private int tmap = 0;
 	
 	/**
 	 * This is a wrapper for Context that gets keys and adds an ID at the end to identify the cluster the data comes from.
@@ -146,60 +140,26 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 		Configuration conf = context.getConfiguration();
 		if (!conf.getBoolean("mapred.job.precise", false)) {
 			// Integer format
-			if (IntWritable.class.equals(context.getMapOutputValueClass())) {
-				if (m >= 0) {
-					sendValue(context, ApproximateReducer.m_SAMPLED, (int) m);
-				}
-				if (t >= 0) {
-					sendValue(context, ApproximateReducer.T_SAMPLED, (int) t);
-				}
-				if (s2 >= 0 || s2 == -3) {
-					sendValue(context, ApproximateReducer.S_SAMPLED, (int) s2);
-				}
-				sendValue(context, ApproximateReducer.M_SAMPLED, (int) M);
-				sendValue(context, ApproximateReducer.t_SAMPLED, (int) tmap);
-				// Send the cluster marks
-				sendValue(context, ApproximateReducer.CLUSTERINI, 0);
-				sendValue(context, ApproximateReducer.CLUSTERFIN, 0);
-			// Long format
-			} else {
-				if (m >= 0) {
-					sendValue(context, ApproximateReducer.m_SAMPLED, m);
-				}
-				if (t >= 0) {
-					sendValue(context, ApproximateReducer.T_SAMPLED, t);
-				}
-				if (s2 >= 0 || s2 == -3) {
-					sendValue(context, ApproximateReducer.S_SAMPLED, s2);
-				}
-				sendValue(context, ApproximateReducer.M_SAMPLED, (long) M);
-				sendValue(context, ApproximateReducer.t_SAMPLED, (long) tmap);
-				// Send the cluster marks
-				sendValue(context, ApproximateReducer.CLUSTERINI, 0L);
-				sendValue(context, ApproximateReducer.CLUSTERFIN, 0L);
-			}
-		}
-	}
-	
-	
-	/**
-	 * Send a parameter (inside of the data) to all reducers.
-	 */
-	protected void sendValue(Context context, String param, Long value) throws IOException, InterruptedException {
-		int numReducers = context.getConfiguration().getInt("mapred.reduce.tasks", 1);
-		for (int r=0; r<numReducers; r++) {
-			context.write((KEYOUT) new Text(String.format(param, context.getTaskAttemptID().getTaskID().getId(), r)), (VALUEOUT) new LongWritable(value));
-		}
-	}
-	
-	protected void sendValue(Context context, String param, Integer value) throws IOException, InterruptedException {
-		int numReducers = context.getConfiguration().getInt("mapred.reduce.tasks", 1);
-		for (int r=0; r<numReducers; r++) {
-			context.write((KEYOUT) new Text(String.format(param, context.getTaskAttemptID().getTaskID().getId(), r)), (VALUEOUT) new IntWritable(value));
+			sendWeights(context);
 		}
 	}
 
-	protected void sendWeights(Context context, )
+	protected void sendWeights(Context context){
+		SampleFileSplit split = (SampleFileSplit)context.getInputSplit();
+		String[] keys = split.getKeys();
+		String[] weights = split.getWeights();
+		int taskID = context.getTaskAttemptID().getTaskID().getId();
+		byte[] byteId1 = new byte[] {(byte) (taskID/128), (byte) (taskID%128)};
+		for(int i = 0; i < keys.length; i++){
+			byte[] byteId2 = new byte[] {(byte) (i/128), (byte) (i%128)};
+			String[] segKeys = keys[i].split("*+*");
+			String[] segWeights = weights[i].split("*+*");
+			for(int j = 0; j < segKeys.length; j++){
+				//may use string builder
+				context.write((KEYOUT) new Text(segKeys[j] + new String(byteId1) + new String(byteId2) + "-w"), Double.parseDouble(segWeights[j]));
+			}
+		}
+	}
 
 
 }
