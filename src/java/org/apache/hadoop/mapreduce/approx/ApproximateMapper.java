@@ -9,6 +9,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.DoubleWritable;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.RawComparator;
@@ -156,7 +157,7 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 			String[] segWeights = weights[i].split("*+*");
 			for(int j = 0; j < segKeys.length; j++){
 				//may use string builder
-				context.write((KEYOUT) new Text(segKeys[j] + new String(byteId1) + new String(byteId2) + "-w"), Double.parseDouble(segWeights[j]));
+				context.write((KEYOUT) new Text(segKeys[j] + new String(byteId1) + new String(byteId2) + "-w"), (VALUEOUT) new DoubleWritable(Double.parseDouble(segWeights[j])));
 			}
 		}
 	}

@@ -9,9 +9,10 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.input.SampleFileSplit;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
+
+import org.apache.hadoop.mapreduce.approx.lib.input.SampleFileSplit;
 
 public class SampleLineRecordReader extends RecordReader<LongWritable, Text> {
 

@@ -54,7 +54,7 @@ import org.apache.hadoop.net.NetworkTopology;
 import org.apache.hadoop.mapreduce.approx.SegmentsMap;
 import org.apache.hadoop.mapreduce.approx.SegmentsMap.Segment;
 
-public abstract class SampleInputFormat<K, V> extends FileInputFormat<K, V>{
+public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
   public static final String SPLIT_MINSIZE_PERNODE = 
     "mapreduce.input.fileinputformat.split.minsize.per.node";
   public static final String SPLIT_MINSIZE_PERRACK = 
@@ -67,7 +67,7 @@ public abstract class SampleInputFormat<K, V> extends FileInputFormat<K, V>{
   private HashMap<String, Set<String>> rackToNodes = 
                             new HashMap<String, Set<String>>();
   
-  public SampleInputFormat() {
+  public SampleTextInputFormat() {
   }
 
 

@@ -46,7 +46,7 @@ import org.apache.log4j.Logger;
  * The data needs to come properly sorted.
  * @author Inigo Goiri
  */
-public abstract class MultistageSamplingReducer<KEYIN extends Text,VALUEIN,KEYOUT,VALUEOUT extends WritableComparable> extends Reducer<KEYIN,VALUEIN,KEYOUT,VALUEOUT> {
+public abstract class MultistageSamplingReducer<KEYIN extends Text,VALUEIN,KEYOUT, extends WritableComparable, VALUEOUT extends Text> extends Reducer<KEYIN,VALUEIN,KEYOUT,VALUEOUT> {
 	private static final Logger LOG = Logger.getLogger(MultistageSamplingReducer.class);
 	
 	public static final String NULLKEY = "NULLKEY";
@@ -116,7 +116,8 @@ public abstract class MultistageSamplingReducer<KEYIN extends Text,VALUEIN,KEYOU
 			double tauhat   = result[0];
 			double interval = result[1];
 			
-			context.write((KEYOUT) new Text(prevKey), (VALUEOUT) new ApproximateLongWritable((long) tauhat, interval));
+
+			context.write((KEYOUT) new Text(prevKey), (VALUEOUT) new Text(String.format("%.2f;error:%.2f;s2:%.2f", tauhat, interval, s2)));
 		}
 		
 		/**
@@ -259,6 +260,7 @@ public abstract class MultistageSamplingReducer<KEYIN extends Text,VALUEIN,KEYOU
 	protected double[] estimateCurrentResult(boolean reset) {
 		// Estimate the result
 		double sum = 0.0;
+		s2 = 0.0;
 		for (int i = 0; i < ti.size(); i++ ) {
 			sum += ti.get(i)/wi.get(i);
 		}

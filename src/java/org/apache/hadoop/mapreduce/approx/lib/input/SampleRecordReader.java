@@ -28,6 +28,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 
+import org.apache.hadoop.mapreduce.approx.lib.input.SampleFileSplit;
 /**
  * A generic RecordReader that can hand out different recordReaders
  * for each chunk in a {@link SampleFileSplit}.
@@ -70,6 +71,7 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
       String currentValue = this.getCurrentValue().toString().toLowerCase();
       String[] keys = this.split.getKeys(idx-1).split("*+*");
       for(String key : keys){
+      	//*************************************************************************fields separator**********************
         String[] fields = key.split("+*+");
         for(String field : fields){
           if(!currentValue.contains(key.toLowerCase())){
