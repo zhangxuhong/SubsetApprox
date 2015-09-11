@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.lang.Double;
 
 import org.apache.hadoop.mapreduce.Reducer;
 
@@ -46,8 +47,8 @@ import org.apache.log4j.Logger;
  * The data needs to come properly sorted.
  * @author Inigo Goiri
  */
-public abstract class MultistageSamplingReducer<KEYIN extends Text,VALUEIN,KEYOUT, extends WritableComparable, VALUEOUT extends Text> extends Reducer<KEYIN,VALUEIN,KEYOUT,VALUEOUT> {
-	private static final Logger LOG = Logger.getLogger(MultistageSamplingReducer.class);
+public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VALUEOUT extends WritableComparable> extends Reducer<KEYIN,VALUEIN,KEYOUT,VALUEOUT> {
+	private static final Logger LOG = Logger.getLogger(ApproximateReducer.class);
 	
 	public static final String NULLKEY = "NULLKEY";
 	public static final char MARK_PARAM = 'w';
@@ -61,9 +62,9 @@ public abstract class MultistageSamplingReducer<KEYIN extends Text,VALUEIN,KEYOU
 	protected int n = 0;
 	
 	// cluster total
-	protected ArrayList<double> ti;
+	protected ArrayList<Double> ti;
 	// cluster weight
-	protected ArrayList<double> wi;
+	protected ArrayList<Double> wi;
 	
 	
 	// Score based on T-student distribution for estimating the range
@@ -86,8 +87,8 @@ public abstract class MultistageSamplingReducer<KEYIN extends Text,VALUEIN,KEYOU
 		
 		// If we are approximating, we use the rest
 		if (!precise) {
-			ti = new ArrayList<double>();
-			wi = new ArrayList<double>();
+			ti = new ArrayList<Double>();
+			wi = new ArrayList<Double>();
 		}
 	}
 	
@@ -262,12 +263,12 @@ public abstract class MultistageSamplingReducer<KEYIN extends Text,VALUEIN,KEYOU
 		double sum = 0.0;
 		s2 = 0.0;
 		for (int i = 0; i < ti.size(); i++ ) {
-			sum += ti.get(i)/wi.get(i);
+			sum += ti.get(i).doubleValue()/wi.get(i).doubleValue();
 		}
 		total = sum/ti.size();
 		sum = 0.0;
 		for (int i = 0; i < ti.size(); i++ ) {
-			sum += Math.pow(ti.get(i)/wi.get(i) -total, 2);
+			sum += Math.pow(ti.get(i).doubleValue()/wi.get(i).doubleValue() - total, 2);
 		}
 		s2 = sum/(ti.size()-1);
 		variance = Math.sqrt(s2/n);

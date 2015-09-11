@@ -18,7 +18,7 @@ public class MySampleTextInputFormat extends SampleTextInputFormat<LongWritable,
 	@Override
 	public RecordReader<LongWritable, Text> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
 
-		SampleFileSplit sampleFileSplit = (CombineFileSplit) split;
+		SampleFileSplit sampleFileSplit = (SampleFileSplit) split;
 		SampleRecordReader<LongWritable, Text> recordReader = new SampleRecordReader<LongWritable, Text>(sampleFileSplit, context, SampleLineRecordReader.class);
 		try {
 			recordReader.initialize(sampleFileSplit, context);

@@ -22,11 +22,7 @@
     <artifact conf="master"/>
   </publications>
   <dependencies>
-    <dependency org="info.bliki.wiki" name="bliki-core" rev="3.0.16" conf="*->*,!sources,!javadoc">
-      <exclude org="commons-httpclient" module="commons-httpclient"/>
-    </dependency>
-    <dependency org="com.google.guava" name="guava" rev="13.0.1" conf="*->*,!sources,!javadoc"/>
-    <dependency org="com.google.code.gson" name="gson" rev="2.2.2" conf="*->*,!sources,!javadoc"/>
+    <dependency org="org.apache.commons" name="commons-lang3" rev="3.0" conf="common->default"/>
 
     <dependency org="commons-math" name="commons-math" rev="1.1" conf="common->default"/>
 

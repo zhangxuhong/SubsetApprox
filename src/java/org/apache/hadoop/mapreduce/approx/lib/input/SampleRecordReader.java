@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.mapreduce.lib.input;
+package org.apache.hadoop.mapreduce.approx.lib.input;
 
 import java.io.*;
 import java.lang.reflect.*;
@@ -68,7 +68,7 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
 
   public boolean nextKeyValue() throws IOException, InterruptedException {
     while(nextKeyValueOrg()){
-      String currentValue = this.getCurrentValue().toString().toLowerCase();
+      String currentValue = ((Text)this.getCurrentValue()).toString().toLowerCase();
       String[] keys = this.split.getKeys(idx-1).split("*+*");
       for(String key : keys){
       	//*************************************************************************fields separator**********************
@@ -99,9 +99,9 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
   }
   
   public V getCurrentValue() throws IOException, InterruptedException {
-    Text currentValue = curReader.getCurrentValue();
+    
     //currentValue = new Text(currentValue.toString() + "+" + String.valueOf(idx-1));
-    return currentValue;
+    return curReader.getCurrentValue();
   }
   
 

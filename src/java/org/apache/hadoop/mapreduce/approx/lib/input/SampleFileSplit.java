@@ -49,7 +49,7 @@ public class SampleFileSplit extends InputSplit implements Writable {
    * @param length the number of bytes in the file to process
    * @param hosts the list of hosts containing the block, possibly null
    */
-  public SampleFileSplit(Path file, long[] start, long[] length, String[] keys, String weights, String[] hosts) {
+  public SampleFileSplit(Path file, long[] start, long[] length, String[] keys, String[] weights, String[] hosts) {
     this.file = file;
     this.start = start;
     this.length = length;
@@ -115,11 +115,11 @@ public class SampleFileSplit extends InputSplit implements Writable {
       out.writeLong(len);
     }
     out.writeInt(keys.length);
-    for(long key : keys){
+    for(String key : keys){
       Text.writeString(out, key);
     }
     out.writeInt(weights.length);
-    for(long weight : weights){
+    for(String weight : weights){
       Text.writeString(out, weight);
     }
   }

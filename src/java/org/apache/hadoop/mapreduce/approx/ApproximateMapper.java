@@ -18,8 +18,8 @@ import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.StatusReporter;
 
 import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapreduce.lib.input.SampleFileSplit;
 
+import org.apache.hadoop.mapreduce.approx.lib.input.SampleFileSplit;
 import org.apache.hadoop.mapreduce.approx.lib.input.SampleLineRecordReader;
 import org.apache.hadoop.mapreduce.approx.lib.input.SampleRecordReader;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -75,11 +75,11 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 		}
 		
 		private int getCurrentClusterID(){
-			RecordReader<KEYIN,VALUEIN> reader = context.getRecordReader();
+			//RecordReader<KEYIN,VALUEIN> reader = context.getRecordReader();
 			int clusterID = -1;
-			if (reader instanceof SampleRecordReader) {
-				clusterID = ((SampleRecordReader)reader).getCurrentClusterID();
-			}
+			//if (reader instanceof SampleRecordReader) {
+			//	clusterID = ((SampleRecordReader)reader).getCurrentClusterID();
+			//}
 			return clusterID;
 		}
 
@@ -124,7 +124,6 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 		
 		while (context.nextKeyValue()) {
 			map(context.getCurrentKey(), context.getCurrentValue(), newcontext);
-			m++;
 		}
 		
 		cleanup(context);
@@ -145,7 +144,7 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 		}
 	}
 
-	protected void sendWeights(Context context){
+	protected void sendWeights(Context context) throws IOException, InterruptedException {
 		SampleFileSplit split = (SampleFileSplit)context.getInputSplit();
 		String[] keys = split.getKeys();
 		String[] weights = split.getWeights();

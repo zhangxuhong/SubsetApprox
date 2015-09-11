@@ -30,6 +30,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Arrays;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -49,7 +51,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.net.NodeBase;
 import org.apache.hadoop.net.NetworkTopology;
-
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 
 import org.apache.hadoop.mapreduce.approx.SegmentsMap;
 import org.apache.hadoop.mapreduce.approx.SegmentsMap.Segment;
@@ -375,23 +377,23 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
                                ArrayList<OneBlockInfo> validBlocks) {
     // create an input split
     Path fl = validBlocks.get(0).onepath;
-    ArrayList<long> offset = new ArrayList<long>();
-    ArrayList<long> length = new ArrayList<long>();
-    ArrayList<String> key = new ArrayList<String>();
-    ArrayList<String> weight = new ArrayList<String>();
+    long[] offset = null;
+    long[] length = null;
+    String[] key = null;
+    String[] weight = null;
     for (int i = 0; i < validBlocks.size(); i++) {
       //fl[i] = validBlocks.get(i).onepath; 
-      offset.addAll(Arrays.asList(validBlocks.get(i).segOffset));
-      length.addAll(Arrays.asList(validBlocks.get(i).segLength));
-      key.addAll(Arrays.asList(validBlocks.get(i).segKeys));
-      weight.addAll(Arrays.asList(validBlocks.get(i).segmentWeights));
+      offset = ArrayUtils.addAll(offset, validBlocks.get(i).segOffset);
+      length = ArrayUtils.addAll(length, validBlocks.get(i).segLength);
+      key = ArrayUtils.addAll(key, validBlocks.get(i).segKeys);
+      weight = ArrayUtils.addAll(weight, validBlocks.get(i).segWeights);
     }
 
      // add this split to the list that is returned
-    SampleFileSplit thissplit = new SampleFileSplit(fl, offset.toArray(new long[offset.size()]), 
-                                   length.toArray(new long[length.size()]), 
-                                   key.toArray(new String[key.size()]), 
-                                   weight.toArray(new String[weight.size()]),
+    SampleFileSplit thissplit = new SampleFileSplit(fl, offset, 
+                                   length, 
+                                   key, 
+                                   weight,
                                    locations.toArray(new String[0]));
     splitList.add(thissplit); 
   }
@@ -431,7 +433,7 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
                                                            stat.getLen());
 			// get all sample segments
 
-      SegmentsMap smap = new SegmentsMap();
+      SegmentsMap smap = new SegmentsMap(conf, path);
       Segment[] sampleSegList = smap.getSampleSegmentsList(0.1);
 
       // create a list of all block and their locations
@@ -441,10 +443,10 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
         if (!isSplitable) {
           // if the file is not splitable, just create the one block with
           // full file length
-          blocks = new OneBlockInfo[1];
-          fileSize = stat.getLen();
-          blocks[0] = new OneBlockInfo(path, 0, fileSize, locations[0]
-              .getHosts(), locations[0].getTopologyPaths());
+          //blocks = new OneBlockInfo[1];
+          //fileSize = stat.getLen();
+          //blocks[0] = new OneBlockInfo(path, 0, fileSize, locations[0]
+              //.getHosts(), locations[0].getTopologyPaths());
         } else {
           ArrayList<OneBlockInfo> blocksList = new ArrayList<OneBlockInfo>(
               locations.length);
@@ -454,20 +456,20 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
             // each split can be a maximum of maxSize
             long blklength = locations[i].getLength();
             long blkOffset = locations[i].getOffset();
-            ArrayList<long> segmentOffsets = new ArrayList<long>();
-            ArrayList<long> segmentLengths = new ArrayList<long>();
+            long[] segmentOffsets = null;
+            long[] segmentLengths = null;
             ArrayList<String> segmentKeys = new ArrayList<String>();
             ArrayList<String> segmentWeights = new ArrayList<String>();
             while(sampleSegList[j].getOffset() >= blkOffset && sampleSegList[j].getOffset() < blkOffset + blklength){
-            	segmentOffsets.add(sampleSegList[j].getOffset());
-            	segmentLengths.add(sampleSegList[j].getLength());
+            	segmentOffsets = ArrayUtils.addAll(segmentOffsets ,new long[]{sampleSegList[j].getOffset()});
+            	segmentLengths = ArrayUtils.addAll(segmentLengths ,new long[]{sampleSegList[j].getLength()});
               segmentKeys.add(sampleSegList[j].getKeys());
-              segmentWeights.add(sampleSegList[j].getWeights())
+              segmentWeights.add(sampleSegList[j].getWeights());
             	j++;
             }
             
-          	long[] myOffset = segmentOffsets.toArray(new long[segmentOffsets.size()]);
-          	long[] myLength = segmentLengths.toArray(new long[segmentLengths.size()]);
+          	long[] myOffset = segmentOffsets;
+          	long[] myLength = segmentLengths;
             String[] mykey = segmentKeys.toArray(new String[segmentKeys.size()]);
             String[] myweight = segmentWeights.toArray(new String[segmentWeights.size()]);
 
