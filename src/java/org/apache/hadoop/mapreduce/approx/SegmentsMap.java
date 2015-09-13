@@ -1,6 +1,8 @@
 package org.apache.hadoop.mapreduce.approx;
 
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -35,7 +37,7 @@ public class SegmentsMap {
     private long[] frequency;
     private String[] keyword;
 
-    public Segment(long offset, long length, long rows, long frequency, String keyword){
+    public Segment(long offset, long length, long rows, long[] frequency, String[] keyword){
       this. offset =offset;
       this.length = length;
       this.rows = rows;
@@ -51,20 +53,20 @@ public class SegmentsMap {
     public void setRows(long rows){
       this.rows = rows;
     }
-    public void setFrequency(long frequency){
+    public void setFrequency(long[] frequency){
       this.frequency = frequency;
     }
-    public void setKeyword(String keyword){
+    public void setKeyword(String[] keyword){
       this.keyword = keyword;
     }
 
     public double getProbability(String key){
-      return (double)frequency/rows;
+      return (double)frequency[0]/rows;
     }
     public long getRows(){
       return rows;
     }
-    public long getFrequency(){
+    public long[] getFrequency(){
       return frequency;
     }
     public long getOffset(){
@@ -86,6 +88,14 @@ public class SegmentsMap {
 
       keys = keys + "*+*" + onekey;
     }
+
+    public String getWeights(){
+      return weights;
+    }
+
+    public String getKeys(){
+      return keys;
+    }
   		
   }
 
@@ -93,14 +103,14 @@ public class SegmentsMap {
 
 	public Segment[] getSampleSegmentsList(double ratio){
 
-    List<Segment> sampleSegmentsList;
+    List<Segment> sampleSegmentsList = new ArrayList<Segment>();
 		//array need to be sorted based offset.
     String[] filterKeys = null;
     Segment[] keysSegments =  this.retrieveKeyHistogram(filterKeys);
     for(String filterKey : filterKeys){
       this.randomProcess(keysSegments, sampleSegmentsList, filterKey, 10);
     } 
-		return sampleSegmentsList;
+		return sampleSegmentsList.toArray(new Segment[sampleSegmentsList.size()]);
 	}
 
 	public Segment[] getSampleSegmentsList(double error, double s2, double confidence){
@@ -109,35 +119,35 @@ public class SegmentsMap {
 	}
 
 
-  private void randomProcess(Segment[] keysSegments, Segment[] sampleSegmentsList, String key, long sampleSize){
+  private void randomProcess(Segment[] keysSegments, List<Segment> sampleSegmentsList, String key, long sampleSize){
     Segment candidate = null;
     double weight = -1;
     //add random process here
     this.addToSampleSegmentList(candidate, sampleSegmentsList, key, weight);
   }
 
-  private void addToSampleSegmentList(Segment candidate, Segment[] sampleSegmentsList, String key, double weight){
+  private void addToSampleSegmentList(Segment candidate, List<Segment> sampleSegmentsList, String key, double weight){
     candidate.addKey(key);
     candidate.addWeight(weight);
     if(!sampleSegmentsList.contains(candidate)){
-      sampleSegmentsList.add(candidate)
+      sampleSegmentsList.add(candidate);
     }
   }
 
   private Segment[] retrieveKeyHistogram(String[] keys){
     //read a file sequentially
     try {
-      FileSystem fs = file.getFileSystem(conf);
+      FileSystem fs = FileSystem.get(conf);;
       Path newPath = new Path(path.toString()+"-index");
-      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fs.open(newPath)));
+      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fs.open(newPath)));
       String line = bufferedReader.readLine();
       while (line != null) {
         System.out.println(line);
         line = bufferedReader.readLine();
       }
     } catch (IOException e) {
-      bufferedReader.close();
-      e.printStackTrace();
+      //bufferedReader.close();
+      e.printStackTrace();
     }
     return null;
   }
