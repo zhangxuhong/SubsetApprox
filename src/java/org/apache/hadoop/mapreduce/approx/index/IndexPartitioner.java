@@ -20,7 +20,7 @@ public class IndexPartitioner<K,V> extends HashPartitioner<K,V> {
 			String aux = ((Text)key).toString();
 			
 			// Check if it's a parameter, it has the \0 first to guarantee is the first when sorting
-			int lastIndex = aux.lastIndexOf('--');
+			int lastIndex = aux.lastIndexOf("--");
 			if (lastIndex > 0) {
 				return Integer.parseInt(aux.substring(lastIndex+2, aux.length())) % numReduceTasks;
 			}
