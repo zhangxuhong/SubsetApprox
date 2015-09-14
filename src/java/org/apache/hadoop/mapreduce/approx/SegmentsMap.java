@@ -105,8 +105,9 @@ public class SegmentsMap {
 
     List<Segment> sampleSegmentsList = new ArrayList<Segment>();
 		//array need to be sorted based offset.
-    String[] filterKeys = null;
-    Segment[] keysSegments =  this.retrieveKeyHistogram(filterKeys);
+    String[] whereKeys = null;
+    String groupBy = null;
+    Segment[] keysSegments =  this.retrieveKeyHistogram(whereKeys, groupBy);
     for(String filterKey : filterKeys){
       this.randomProcess(keysSegments, sampleSegmentsList, filterKey, 10);
     } 
@@ -134,8 +135,11 @@ public class SegmentsMap {
     }
   }
 
-  private Segment[] retrieveKeyHistogram(String[] keys){
+  private Segment[] retrieveKeyHistogram(String[] wherekeys, String groupBy){
     //read a file sequentially
+    // format: key, offset, segsize, frequency
+    //here need to form all the filter keys (cominations of fields)
+
     try {
       FileSystem fs = FileSystem.get(conf);;
       Path newPath = new Path(path.toString()+"-index");

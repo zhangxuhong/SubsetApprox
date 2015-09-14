@@ -69,7 +69,7 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 				for(int i = 0; i < preHistogram.size(); i++){
 					Set<Entry<String, Long>> entries =  preHistogram.get(i).entrySet();
 					for(Entry<String, Long> ent : entries){
-						context.write(new Text(ent.getKey()), 
+						context.write(new Text(ent.getKey() + "--" + String.valueOf(i)), 
 							new Text(String.format("%d,%d,%d", 
 								preSegPosition, segSize, ent.getValue().longValue())));
 					}
@@ -103,7 +103,7 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 			  	}
 			  	Set<Entry<String, Long>> pEntries =  preHistogram.get(i).entrySet();
 				for(Entry<String, Long> ent : pEntries){
-					context.write(new Text(ent.getKey()), 
+					context.write(new Text(ent.getKey() + "--" + String.valueOf(i)), 
 						new Text(String.format("%d,%d,%d", 
 							preSegPosition, segSize + recordCount, ent.getValue().longValue())));
 				}

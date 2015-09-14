@@ -25,6 +25,12 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 
+
+import org.apache.hadoop.mapreduce.approx.index.IndexPartitioner;
+import org.apache.hadoop.mapreduce.approx.index.IndexMapper;
+import org.apache.hadoop.mapreduce.approx.index.IndexReducer;
+
+
 public class Index {
 	/**
 	 * Launch wikipedia page rank.
@@ -46,6 +52,7 @@ public class Index {
 			CommandLine cmdline = new GnuParser().parse(options, otherArgs);
 			String input  = cmdline.getOptionValue("i");
 			String output = cmdline.getOptionValue("o");
+			int numReducer = 1;
 			if (input == null || output == null) {
 				throw new ParseException("No input/output option");
 			}
@@ -58,11 +65,14 @@ public class Index {
 			}
 			if(cmdline.hasOption("f")) {
 				conf.set("map.input.index.fields", cmdline.getOptionValue("f"));
+				numReducer = cmdline.getOptionValue("f").split("-").length;
 			}
+
+			//cmdline.getOptionValue
 
 			Job job = new Job(conf, "Build histogram");
 			job.setJarByClass(Index.class);
-
+			job.setNumReduceTasks(numReducer);
 			job.setMapperClass(IndexMapper.class);
 			job.setReducerClass(IndexReducer.class);
 
@@ -70,6 +80,8 @@ public class Index {
 			job.setMapOutputValueClass(Text.class);
 			job.setOutputKeyClass(NullWritable.class);
 			job.setOutputValueClass(Text.class);
+
+			job.setPartitionerClass(IndexPartitioner.class);
 
 			job.setInputFormatClass(TextInputFormat.class);
 
