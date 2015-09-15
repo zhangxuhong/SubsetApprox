@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.Iterator;
 import java.util.Map;
+import java.lang.Math;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -42,13 +43,15 @@ public class SegmentsMap {
     private long rows;
     private ArrayList<Long> frequency;
     private ArrayList<String> keyword;
+    private Hashtable<String, Long> histogram;
 
     public Segment(long offset, long length, long rows){
       this. offset =offset;
       this.length = length;
       this.rows = rows;
-      this.frequency = new ArrayList<Long>();
-      this.keyword = new ArrayList<String>();
+      //this.frequency = new ArrayList<Long>();
+      //this.keyword = new ArrayList<String>();
+      this.histogram = new Hashtable<String, Long>();
     }
     public void setOffset(long offset){
       this. offset =offset;
@@ -59,22 +62,28 @@ public class SegmentsMap {
     public void setRows(long rows){
       this.rows = rows;
     }
-    public void addFrequency(long frequency){
-      this.frequency.add(frequency);
-    }
-    public void addKeyword(String keyword){
-      this.keyword.add(keyword);
+    // public void addFrequency(long frequency){
+    //   this.frequency.add(frequency);
+    // }
+    // public void addKeyword(String keyword){
+    //   this.keyword.add(keyword);
+    // }
+    public void addHistogramRecord(String keyword, long frequency){
+      this.histogram.put(keyword, frequency);
     }
 
     public int getKeyWeight(String key){
       //return (double)frequency[0]/rows;
-      return 0;
+      string[] fields = key.split("+*+");
+      double w = 1;
+      for(String field : fields){
+        w = w * (histogram.get(field) / (double)rows);
+      }
+
+      return (int)Math.round(rows * w);
     }
     public long getRows(){
       return rows;
-    }
-    public long getFrequency(int i){
-      return frequency.get(i);
     }
     public long getOffset(){
       return offset;
@@ -108,14 +117,23 @@ public class SegmentsMap {
 
 
 
-	public Segment[] getSampleSegmentsList(double ratio){
+	public Segment[] getSampleSegmentsList(){
 
     List<Segment> sampleSegmentsList = new ArrayList<Segment>();
 		//array need to be sorted based offset.
     String[] whereKeys = conf.get("map.input.where.clause", null).split(",");
     String groupBy = conf.get("map.input.groupby.clause", null);
+    long sampleSize = conf.getLong("map.input.sample.size", 0);
+    double ratio = conf.getDouble("map.input.sample.ratio",0.0);
+
+
     ArrayList<String> filterKeys = new ArrayList<String>();
     Segment[] keysSegments =  this.retrieveKeyHistogram(whereKeys, groupBy, filterKeys);
+
+    if(sampleSize == 0){
+      sampleSize = (long)Math.ceil(keysSegments.length * ratio);
+    }
+
     List<WeightedItem<Segment>> weightedSegs = new ArrayList<WeightedItem<Segment>>(keysSegments.length);
     for(Segment seg : keysSegments){
       weightedSegs.add(new WeightedItem<Segment>(1, seg));
@@ -124,14 +142,9 @@ public class SegmentsMap {
       for(WeightedItem<Segment> seg : weightedSegs){
         seg.setWeight(seg.getItem().getKeyWeight(filterKey));
       }
-      this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, 10);
+      this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, sampleSize);
     } 
 		return sampleSegmentsList.toArray(new Segment[sampleSegmentsList.size()]);
-	}
-
-	public Segment[] getSampleSegmentsList(double error, double s2, double confidence){
-
-		return null;
 	}
 
 
@@ -180,13 +193,15 @@ public class SegmentsMap {
             Segment newSeg = segTable.get(meta[1]);
             if(newSeg == null){
               newSeg = new Segment(Long.parseLong(meta[1]), Long.parseLong(meta[2]), Long.parseLong(meta[3]));
-              newSeg.addKeyword(meta[0]);
-              newSeg.addFrequency(Long.parseLong(meta[4]));
+              //newSeg.addKeyword(meta[0]);
+              //newSeg.addFrequency(Long.parseLong(meta[4]));
+              newSeg.addHistogramRecord(meta[0], Long.parseLong(meta[4]));
               segTable.put(meta[1], newSeg);
             }
             else{
-              newSeg.addKeyword(meta[0]);
-              newSeg.addFrequency(Long.parseLong(meta[4]));
+              //newSeg.addKeyword(meta[0]);
+              //newSeg.addFrequency(Long.parseLong(meta[4]));
+              newSeg.addHistogramRecord(meta[0], Long.parseLong(meta[4]));
             }
             
           }
@@ -207,13 +222,15 @@ public class SegmentsMap {
           Segment newSeg = segTable.get(meta[1]);
           if(newSeg == null){
             newSeg = new Segment(Long.parseLong(meta[1]), Long.parseLong(meta[2]), Long.parseLong(meta[3]));
-            newSeg.addKeyword(meta[0]);
-            newSeg.addFrequency(Long.parseLong(meta[4]));
+            //newSeg.addKeyword(meta[0]);
+            //newSeg.addFrequency(Long.parseLong(meta[4]));
+            newSeg.addHistogramRecord(meta[0], Long.parseLong(meta[4]));
             segTable.put(meta[1], newSeg);
           }
           else{
-            newSeg.addKeyword(meta[0]);
-            newSeg.addFrequency(Long.parseLong(meta[4]));
+            //newSeg.addKeyword(meta[0]);
+            //newSeg.addFrequency(Long.parseLong(meta[4]));
+            newSeg.addHistogramRecord(meta[0], Long.parseLong(meta[4]));
           }
           if(! preKey.equals(meta[0])){
             filterKeys.add(filterKey + preKey);

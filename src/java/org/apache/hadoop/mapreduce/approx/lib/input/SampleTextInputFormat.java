@@ -434,7 +434,7 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
 			// get all sample segments
 
       SegmentsMap smap = new SegmentsMap(conf, path);
-      Segment[] sampleSegList = smap.getSampleSegmentsList(0.1);
+      Segment[] sampleSegList = smap.getSampleSegmentsList();
 
       // create a list of all block and their locations
       if (locations == null) {
