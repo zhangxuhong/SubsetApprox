@@ -123,27 +123,35 @@ public class SegmentsMap {
 		//array need to be sorted based offset.
     String[] whereKeys = conf.get("map.input.where.clause", null).split(",");
     String groupBy = conf.get("map.input.groupby.clause", null);
-    long sampleSize = conf.getLong("map.input.sample.size", 0);
-    double ratio = conf.getDouble("map.input.sample.ratio",0.0);
-
-
+    
     ArrayList<String> filterKeys = new ArrayList<String>();
     Segment[] keysSegments =  this.retrieveKeyHistogram(whereKeys, groupBy, filterKeys);
-
-    if(sampleSize == 0){
-      sampleSize = (long)Math.ceil(keysSegments.length * ratio);
-    }
-
     List<WeightedItem<Segment>> weightedSegs = new ArrayList<WeightedItem<Segment>>(keysSegments.length);
+
     for(Segment seg : keysSegments){
       weightedSegs.add(new WeightedItem<Segment>(1, seg));
     }
-    for(String filterKey : filterKeys){
-      for(WeightedItem<Segment> seg : weightedSegs){
-        seg.setWeight(seg.getItem().getKeyWeight(filterKey));
+
+    if(conf.getBoolean("map.input.sampling.ratio", false)){
+      double ratio = (double)conf.getFloat("map.input.sample.ratio",0.0);
+      for(String filterKey : filterKeys){
+        for(WeightedItem<Segment> seg : weightedSegs){
+          seg.setWeight(seg.getItem().getKeyWeight(filterKey));
+        }
+        this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, ratio);
       }
-      this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, sampleSize);
-    } 
+    }
+    else{
+      long sampleSize = 0;
+      for(String filterKey : filterKeys){
+        for(WeightedItem<Segment> seg : weightedSegs){
+          seg.setWeight(seg.getItem().getKeyWeight(filterKey));
+        }
+        sampleSize = conf.getLong("map.input.sample.size", 0);
+        this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, sampleSize);
+      }
+    }
+     
 		return sampleSegmentsList.toArray(new Segment[sampleSegmentsList.size()]);
 	}
 
@@ -154,6 +162,19 @@ public class SegmentsMap {
     for(int i = 0; i < sampleSize; i++){
       WeightedItem<Segment> candidate = selector.select();
       double weight = (double)(candidate.getWeight()) / selector.getRangeSize();
+      this.addToSampleSegmentList(candidate.getItem(), sampleSegmentsList, key, weight);
+    }
+    
+  }
+
+  private void randomProcess(List<WeightedItem<Segment>> weightedSegs, 
+                              List<Segment> sampleSegmentsList, String key, double ratio) {
+    WeightedRandomSelector selector = new WeightedRandomSelector(weightedSegs);
+    long records = (long)Math.ceil(selector.getRangeSize() * ratio);
+    for(int i = 0; i < records + 1;){
+      WeightedItem<Segment> candidate = selector.select();
+      double weight = (double)(candidate.getWeight()) / selector.getRangeSize();
+      i += weight;
       this.addToSampleSegmentList(candidate.getItem(), sampleSegmentsList, key, weight);
     }
     

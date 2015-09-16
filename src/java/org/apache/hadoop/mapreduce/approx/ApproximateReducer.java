@@ -38,6 +38,7 @@ import org.apache.commons.math.stat.regression.OLSMultipleLinearRegression;
 
 import org.apache.hadoop.mapreduce.approx.ApproximateLongWritable;
 import org.apache.hadoop.mapreduce.approx.ApproximateIntWritable;
+import org.apache.hadoop.mapreduce.approx.ApproximateDoubleWritable;
 
 import org.apache.log4j.Logger;
 
@@ -112,13 +113,17 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		/**
 		 * Estimate and save the current result.
 		 */
+
+
 		public void saveCurrentResult() throws IOException,InterruptedException {
 			double[] result = estimateCurrentResult();
 			double tauhat   = result[0];
 			double interval = result[1];
-			
+			if(conf.getBoolean("map.input.sample.pilot", false)){
 
-			context.write((KEYOUT) new Text(prevKey), (VALUEOUT) new Text(String.format("%.2f;error:%.2f;s2:%.2f", tauhat, interval, s2)));
+				context.getCounter("sampleSize", prevKey).setValue(estimateSampleSize());
+			}
+			context.write((KEYOUT) new Text(prevKey), (VALUEOUT) new ApproximateDoubleWritable(tauhat, interval));
 		}
 		
 		/**
@@ -158,6 +163,9 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 						
 					}
 					wi.add(res);
+					if(wi.size() == ti.size() +  1){
+						ti.add(ti.get(ti.size()-1));
+					}
 					prevKey = origKey;
 					
 				} else {
@@ -238,7 +246,6 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	}
 	
 	
-	
 	/**
 	 * Check if we run the job precisely.
 	 */
@@ -275,6 +282,10 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		wi.clear();
 		ti.clear();
 		return new double[] {total, tscore*variance};
+	}
+
+	private long estimateSampleSize(){
+		return 100;
 	}
 	
 }
