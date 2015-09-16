@@ -15,7 +15,7 @@ public class ApproximateLongWritable extends DoubleWritable {
 	}
 	
 	public String toString() {
-		String.format("%.2f;error:%.2f;s2:%.2f", tauhat, interval, s2))
+		//String.format("%.2f;error:%.2f;s2:%.2f", tauhat, interval, s2))
 		return double.toString(value)+"+/-"+range;
 	}
 

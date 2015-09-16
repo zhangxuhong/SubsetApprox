@@ -66,6 +66,10 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	protected ArrayList<Double> ti;
 	// cluster weight
 	protected ArrayList<Double> wi;
+
+	protected ArrayList<long> mi;
+
+	protected ArrayList<Double> yi_mean;
 	
 	
 	// Score based on T-student distribution for estimating the range
@@ -75,6 +79,12 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	protected double variance;
 	protected double s2;
 	
+	protected double msb;
+	protected double msw;
+	protected double k;
+	protected long weightedSize;
+	protected double deff_p;
+	protected double deff_c;
 	/**
 	 * Initialize all the variables needed for multistage sampling.
 	 */
@@ -225,6 +235,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			while (context.nextKey()) {
 				KEYIN key = context.getCurrentKey();
 				// Note that we pass the parameters over the reducer too
+				calculateClusterMean(context.getValues());
 				reduce(key, context.getValues(), clusteringContext);
 			}
 			
