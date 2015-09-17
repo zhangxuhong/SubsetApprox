@@ -133,7 +133,7 @@ public class SegmentsMap {
     }
 
     if(conf.getBoolean("map.input.sampling.ratio", false)){
-      double ratio = (double)conf.getFloat("map.input.sample.ratio",0.0);
+      double ratio = Double.parseDouble(conf.get("map.input.sample.ratio.value", "0.01"));
       for(String filterKey : filterKeys){
         for(WeightedItem<Segment> seg : weightedSegs){
           seg.setWeight(seg.getItem().getKeyWeight(filterKey));
@@ -147,7 +147,7 @@ public class SegmentsMap {
         for(WeightedItem<Segment> seg : weightedSegs){
           seg.setWeight(seg.getItem().getKeyWeight(filterKey));
         }
-        sampleSize = conf.getLong("map.input.sample.size", 0);
+        sampleSize = conf.getLong("map.input.sample.size." + filterKey, 0);
         this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, sampleSize);
       }
     }

@@ -65,22 +65,29 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	// cluster total
 	protected ArrayList<Double> ti;
 	// cluster weight
-	protected ArrayList<Double> wi;
-
-	protected ArrayList<long> mi;
-
+	protected ArrayList<Long> wi;
+	// size of each cluster
+	protected ArrayList<Long> mi;
+	// mean of each cluster
 	protected ArrayList<Double> yi_mean;
+	// s2 within a cluster
+	protected ArrayList<Double> sw;
 	
 	
 	// Score based on T-student distribution for estimating the range
 	protected double tscore = 1.96; // Default is 95% for high n
+	protected double confidence;
+	protected double error;
 
 	protected double total;
 	protected double variance;
 	protected double s2;
+	protected long totalSize;
+	protected boolean isWeight;
 	
 	protected double msb;
 	protected double msw;
+	protected double sst;
 	protected double k;
 	protected long weightedSize;
 	protected double deff_p;
@@ -100,6 +107,12 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		if (!precise) {
 			ti = new ArrayList<Double>();
 			wi = new ArrayList<Double>();
+			mi = new ArrayList<Long>();
+			yi_mean = new ArrayList<Double>();
+			sw = new ArrayList<Double>();
+			isWeight = false;
+			error = Double.parseDouble(conf.get("mapred.job.error", "1.0");
+			confidence = Double.parseDouble(conf.get("mapred.job.confidence", "-1.0"));
 		}
 	}
 	
@@ -126,13 +139,13 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 
 
 		public void saveCurrentResult() throws IOException,InterruptedException {
+			// key need to be consistent with segmap
+			if(conf.getBoolean("map.input.sample.pilot", false)){
+				context.getCounter("sampleSize", prevKey).setValue(estimateSampleSize());
+			}
 			double[] result = estimateCurrentResult();
 			double tauhat   = result[0];
 			double interval = result[1];
-			if(conf.getBoolean("map.input.sample.pilot", false)){
-
-				context.getCounter("sampleSize", prevKey).setValue(estimateSampleSize());
-			}
 			context.write((KEYOUT) new Text(prevKey), (VALUEOUT) new ApproximateDoubleWritable(tauhat, interval));
 		}
 		
@@ -181,6 +194,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 				} else {
 					String origKey = new String(aux, 0, aux.length-4);
 					// We changed the key and the previous one wasn't a parameter, write it!
+					isWeight = false;
 					if (!origKey.equals(prevKey) && prevKey != null) {
 						saveCurrentResult();
 					}
@@ -234,9 +248,17 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			
 			while (context.nextKey()) {
 				KEYIN key = context.getCurrentKey();
-				// Note that we pass the parameters over the reducer too
-				calculateClusterMean(context.getValues());
+				// handle duplicated segments
+				if(ti.size() == mi.size() + 1){
+					sw.add(sw.get(sw.size() -1);
+					totalSize += mi.get(mi.size()-1).longValue();
+					mi.add(mi.get(mi.size()-1));
+				}
 				reduce(key, context.getValues(), clusteringContext);
+				if(!isWeight){
+					calculateClusterMean(context.getValues());
+				}
+				
 			}
 			
 			// We need to treat the last key (not parameters)
@@ -296,7 +318,90 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	}
 
 	private long estimateSampleSize(){
-		return 100;
+		double y_mean = 0.0;
+		int clusterSize = ti.size();
+		deff_p = 0.0;
+		double wi_sum = 0.0;
+		for(int i = 0; i < clusterSize; i++){
+			y_mean += ti.get(i).doubleValue();
+			wi_sum += wi.get(i).doubleValue();
+			deff_p += Math.pow(wi.get(i).doubleValue(), 2);
+		}
+		deff_p = deff_p / Math.pow(wi_sum, 2);
+		y_mean = y_mean / totalSize;
+		msb = 0.0;
+		msw = 0.0;
+		k = 0.0;
+		weightedSize = 0.0;
+		for(int i = 0; i < clusterSize; i++){
+			long ni = mi.get(i).longValue();
+			msb += Math.pow((ti.get(i).doubleValue()/ni - y_mean), 2) * ni;
+			msw += sw.get(i).doubleValue();
+			k += Math.pow(ni, 2);
+			weightedSize += ni * wi.get(i).doubleValue();
+		}
+		sst = msb + msw;
+		msb = msb / (clusterSize - 1);
+		msw = msw / (totalSize - clusterSize);
+		k = (1/(clusterSize -1)) * (totalSize - k / totalSize);
+		double p_aov = (msb - msw) / (msb + (k-1)*msw);
+		deff_c = 1 + (weightedSize -1) * p_aov;
+
+		//calculate size 
+		if(confidence > 0){
+			tscore = getTScore(totalSize-1, confidence);
+		}
+		long srs = (sst/(totalSize-1) * Math.pow(tscore, 2)) / Math.pow(error, 2);
+		return (long)Math.ceil((deff_p * deff_c) * srs);
+	}
+
+	private void calculateClusterMean(Iterable<VALUEIN> values) {
+		double sum = 0.0;
+		long numRecords = 0;
+		for(VALUEIN value: values){
+			double val = 0.0;
+			if (value instanceof LongWritable) {
+				val = (double)(((LongWritable) value).get());
+			} else if (value instanceof IntWritable) {
+				val = (double)(((IntWritable) value).get());
+			} else if (value instanceof DoubleWritable) {
+				val = (double)(((DoubleWritable) value).get());
+			} else if (value instanceof FloatWritable) {
+				val = (double)(((FloatWritable) value).get());
+			}
+			numRecords++;
+			sum += val;
+		}
+		double mean = sum / numRecords;
+		yi_mean.add(mean);
+		sum = 0.0;
+		for(VALUEIN value: values){
+			double val = 0.0;
+			if (value instanceof LongWritable) {
+				val = (double)(((LongWritable) value).get());
+			} else if (value instanceof IntWritable) {
+				val = (double)(((IntWritable) value).get());
+			} else if (value instanceof DoubleWritable) {
+				val = (double)(((DoubleWritable) value).get());
+			} else if (value instanceof FloatWritable) {
+				val = (double)(((FloatWritable) value).get());
+			}
+			sum += Math.pow((val - mean), 2);
+		}
+		sw.add(sum);
+		totalSize += numRecords;
+		mi.add(numRecords);
+	}
+
+
+	private double getTScore(int degrees, double confidence) {
+		double tscore = 1.96; // By default we use the normal distribution
+		try {
+			TDistribution tdist = new TDistributionImpl(degrees);
+			//double confidence = 0.95; // 95% confidence => 0.975
+			tscore = tdist.inverseCumulativeProbability(1.0-((1.0-confidence)/2.0)); // 95% confidence 1-alpha
+		} catch (Exception e) { }
+		return tscore;
 	}
 	
 }

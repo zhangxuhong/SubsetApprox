@@ -79,8 +79,6 @@ public class UserVisitAdRevenue {
 			String input  = cmdline.getOptionValue("i");
 			String output = cmdline.getOptionValue("o");
 			int numReducer = 1;
-			double error = 0.0;
-			double confidence = 0.95;
 			boolean isError = false;
 			if (input == null || output == null) {
 				throw new ParseException("No input/output option");
@@ -100,15 +98,16 @@ public class UserVisitAdRevenue {
 			}
 			if(cmdline.hasOption("e")){
 				isError = true;
-				error = Double.parseDouble(cmdline.getOptionValue("e"));
-				confidence = Double.parseDouble(cmdline.getOptionValue("c"));
+				conf.set("mapred.job.error",cmdline.getOptionValue("e"));
+				conf.set("mapred.job.confidence",cmdline.getOptionValue("c"));
 			}
 
 			//cmdline.getOptionValue
 			if(isError){
-				conf.setLong("map.input.sample.size", 1000);
-				conf.setBoolean("map.input.sample.pilot", true);
-				Job job = new Job(conf, "pilot");
+				Configuration pilotConf = new Configuration(conf);
+				pilotConf.setLong("map.input.sample.size", 1000);
+				pilotConf.setBoolean("map.input.sample.pilot", true);
+				Job job = new Job(pilotConf, "pilot");
 				job.setJarByClass(UserVisitAdRevenue.class);
 				//job.setNumReduceTasks(numReducer);
 				job.setMapperClass(UserVisitAdRevenueMapper.class);
@@ -126,15 +125,13 @@ public class UserVisitAdRevenue {
 				FileInputFormat.addInputPath(job,   new Path(input));
 				FileOutputFormat.setOutputPath(job, new Path(output+"/pilot"));
 				job.waitForCompletion(true);
-				//estimate new size according to pilot and error confidence
+				//estimate new size according to pilot and error pilotConfidence
 				CounterGroup cg = job.getCounters().getGroup("sampleSize");
 				Iterator<Counter> iterator = cg.iterator();
 				while(iterator.hasNext()){
 					Counter ct = iterator.next();
-					ct.getName();
-					long value = ct.getValue();
+					pilotConf.setLong("map.input.sample.size." + ct.getName(), ct.getValue());
 				}
-				conf.setLong("map.input.sample.size", 1000);
 			}
 
 			Job job = new Job(conf, "total of UserVisitAdRevenue");
