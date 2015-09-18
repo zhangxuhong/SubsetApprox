@@ -123,3 +123,7 @@ sendvalue for all weights
 
 ******************************************************************************
 efficient online
+
+"mapreduce.input.fileinputformat.split.minsize.per.node"
+"mapreduce.input.fileinputformat.split.minsize.per.rack"
+"mapreduce.input.fileinputformat.split.maxsize"

@@ -1,4 +1,4 @@
-package org.apache.hadoop.mapreduce.approx.multistage;
+package org.apache.hadoop.mapreduce.approx;
 
 import java.io.IOException;
 
@@ -65,11 +65,11 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	// cluster total
 	protected ArrayList<Double> ti;
 	// cluster weight
-	protected ArrayList<Long> wi;
+	protected ArrayList<Double> wi;
 	// size of each cluster
 	protected ArrayList<Long> mi;
 	// mean of each cluster
-	protected ArrayList<Double> yi_mean;
+	//protected ArrayList<Double> yi_mean;
 	// s2 within a cluster
 	protected ArrayList<Double> sw;
 	
@@ -108,10 +108,10 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			ti = new ArrayList<Double>();
 			wi = new ArrayList<Double>();
 			mi = new ArrayList<Long>();
-			yi_mean = new ArrayList<Double>();
+			//yi_mean = new ArrayList<Double>();
 			sw = new ArrayList<Double>();
 			isWeight = false;
-			error = Double.parseDouble(conf.get("mapred.job.error", "1.0");
+			error = Double.parseDouble(conf.get("mapred.job.error", "1.0"));
 			confidence = Double.parseDouble(conf.get("mapred.job.confidence", "-1.0"));
 		}
 	}
@@ -190,6 +190,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 						ti.add(ti.get(ti.size()-1));
 					}
 					prevKey = origKey;
+					isWeight = true;
 					
 				} else {
 					String origKey = new String(aux, 0, aux.length-4);
@@ -250,7 +251,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 				KEYIN key = context.getCurrentKey();
 				// handle duplicated segments
 				if(ti.size() == mi.size() + 1){
-					sw.add(sw.get(sw.size() -1);
+					sw.add(sw.get(sw.size() -1));
 					totalSize += mi.get(mi.size()-1).longValue();
 					mi.add(mi.get(mi.size()-1));
 				}
@@ -332,7 +333,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		msb = 0.0;
 		msw = 0.0;
 		k = 0.0;
-		weightedSize = 0.0;
+		weightedSize = 0;
 		for(int i = 0; i < clusterSize; i++){
 			long ni = mi.get(i).longValue();
 			msb += Math.pow((ti.get(i).doubleValue()/ni - y_mean), 2) * ni;
@@ -351,7 +352,10 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		if(confidence > 0){
 			tscore = getTScore(totalSize-1, confidence);
 		}
-		long srs = (sst/(totalSize-1) * Math.pow(tscore, 2)) / Math.pow(error, 2);
+		long srs = (long)Math.ceil((sst/(totalSize-1) * Math.pow(tscore, 2)) / Math.pow(error, 2));
+		mi.clear();
+		sw.clear();
+		//yi_mean.clear()
 		return (long)Math.ceil((deff_p * deff_c) * srs);
 	}
 
@@ -373,7 +377,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			sum += val;
 		}
 		double mean = sum / numRecords;
-		yi_mean.add(mean);
+		//yi_mean.add(mean);
 		sum = 0.0;
 		for(VALUEIN value: values){
 			double val = 0.0;
@@ -394,7 +398,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	}
 
 
-	private double getTScore(int degrees, double confidence) {
+	private double getTScore(long degrees, double confidence) {
 		double tscore = 1.96; // By default we use the normal distribution
 		try {
 			TDistribution tdist = new TDistributionImpl(degrees);

@@ -46,12 +46,13 @@ public class Index {
 		options.addOption("d", "delimiter", true, "fields delimiter");
 		options.addOption("f", "fields", true, "fields to compute histogram, ex. 0-2-4, 0th,2th,4th field");
 		options.addOption("i", "input",    true,  "Input file");
-		options.addOption("o", "output",   true,  "Output file");
+		options.addOption("t", "table",   true,  "table name");
 
 		try {
 			CommandLine cmdline = new GnuParser().parse(options, otherArgs);
 			String input  = cmdline.getOptionValue("i");
-			String output = cmdline.getOptionValue("o");
+			String table = cmdline.getOptionValue("t");
+			String output = "/index/table/"+table;
 			int numReducer = 1;
 			if (input == null || output == null) {
 				throw new ParseException("No input/output option");
@@ -85,7 +86,7 @@ public class Index {
 
 			job.setInputFormatClass(TextInputFormat.class);
 
-			FileInputFormat.addInputPath(job,   new Path(input));
+			FileInputFormat.setInputPaths(job,   new Path(input));
 			FileOutputFormat.setOutputPath(job, new Path(output));
 			System.exit(job.waitForCompletion(true) ? 0 : 1);
 

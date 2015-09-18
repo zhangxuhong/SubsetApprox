@@ -4,6 +4,7 @@ import java.util.Random;
 import java.util.TreeMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.lang.Comparable;
 
 public class WeightedRandomSelector<T> {
     private final Random rnd = new Random();

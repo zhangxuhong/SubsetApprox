@@ -5,18 +5,18 @@ import org.apache.hadoop.io.DoubleWritable;
 /**
  * This is just for outputting. The ideal would be to have value as protected in IntWritable but...
  */
-public class ApproximateLongWritable extends DoubleWritable {
+public class ApproximateDoubleWritable extends DoubleWritable {
 	private double value;
 	private double range;
 
-	public ApproximateLongWritable(double value, double range) {
+	public ApproximateDoubleWritable(double value, double range) {
 		this.value = value;
 		this.range = (double) Math.ceil(range);
 	}
 	
 	public String toString() {
 		//String.format("%.2f;error:%.2f;s2:%.2f", tauhat, interval, s2))
-		return double.toString(value)+"+/-"+range;
+		return String.valueOf(value)+"+/-"+ String.valueOf(range);
 	}
 
 	private double getValue() {

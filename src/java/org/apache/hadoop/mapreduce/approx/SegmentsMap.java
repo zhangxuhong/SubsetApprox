@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.Iterator;
 import java.util.Map;
 import java.lang.Math;
+import java.lang.Comparable;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -35,7 +36,12 @@ public class SegmentsMap {
     this.conf = conf;
     this.path = path;
   }
-  public static class Segment {
+  public static class Segment implements Comparable<Segment>{
+
+
+    public int compareTo(Segment other){
+      return this.offset > other.getOffset() ? 1 : -1 ;
+    }
 
     // ***************some static info retrieved from index file.***************************
 		private long offset;
@@ -74,7 +80,7 @@ public class SegmentsMap {
 
     public int getKeyWeight(String key){
       //return (double)frequency[0]/rows;
-      string[] fields = key.split("+*+");
+      String[] fields = key.split("+*+");
       double w = 1;
       for(String field : fields){
         w = w * (histogram.get(field) / (double)rows);
@@ -151,7 +157,8 @@ public class SegmentsMap {
         this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, sampleSize);
       }
     }
-     
+    
+    Collections.sort(sampleSegmentsList);
 		return sampleSegmentsList.toArray(new Segment[sampleSegmentsList.size()]);
 	}
 
@@ -159,9 +166,10 @@ public class SegmentsMap {
   private void randomProcess(List<WeightedItem<Segment>> weightedSegs, 
                               List<Segment> sampleSegmentsList, String key, long sampleSize) {
     WeightedRandomSelector selector = new WeightedRandomSelector(weightedSegs);
-    for(int i = 0; i < sampleSize; i++){
+    for(int i = 0; i < sampleSize + 1;){
       WeightedItem<Segment> candidate = selector.select();
       double weight = (double)(candidate.getWeight()) / selector.getRangeSize();
+      i += candidate.getWeight();
       this.addToSampleSegmentList(candidate.getItem(), sampleSegmentsList, key, weight);
     }
     
@@ -174,7 +182,7 @@ public class SegmentsMap {
     for(int i = 0; i < records + 1;){
       WeightedItem<Segment> candidate = selector.select();
       double weight = (double)(candidate.getWeight()) / selector.getRangeSize();
-      i += weight;
+      i += candidate.getWeight();
       this.addToSampleSegmentList(candidate.getItem(), sampleSegmentsList, key, weight);
     }
     
@@ -196,7 +204,7 @@ public class SegmentsMap {
     try {
       Hashtable<String, Segment> segTable = new Hashtable<String, Segment>();
       String tableName = conf.get("map.input.table.name", "");
-      String indexfile = this.FILE_PREFIX + "/" + tableName + "/" + this.FILE_PREFIX;
+      String indexfile = this.FILE_PARENT + "/" + tableName + "/" + this.FILE_PREFIX;
       String filterKey = "";
       for(String wherekey : wherekeys){
         String fieldIndex = wherekey.split("=")[0];

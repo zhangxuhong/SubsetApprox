@@ -75,11 +75,11 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 		}
 		
 		private int getCurrentClusterID(){
-			//RecordReader<KEYIN,VALUEIN> reader = context.getRecordReader();
+			RecordReader<KEYIN,VALUEIN> reader = context.getRecordReader();
 			int clusterID = -1;
-			//if (reader instanceof SampleRecordReader) {
-			//	clusterID = ((SampleRecordReader)reader).getCurrentClusterID();
-			//}
+			if (reader instanceof SampleRecordReader) {
+				clusterID = ((SampleRecordReader)reader).getCurrentClusterID();
+			}
 			return clusterID;
 		}
 

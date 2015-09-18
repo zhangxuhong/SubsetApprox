@@ -2,6 +2,7 @@ package org.apache.hadoop.mapreduce.approx.app;
 
 import java.lang.Exception;
 import java.io.IOException;
+import java.util.Iterator;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -24,6 +25,8 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.CounterGroup;
+import org.apache.hadoop.mapreduce.Counter;
 
 
 import org.apache.hadoop.mapreduce.approx.ApproximatePartitioner;
@@ -39,9 +42,9 @@ public class UserVisitAdRevenue {
 	public static class UserVisitAdRevenueMapper extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			String[] line = value.toString().split("|");
-			DoubleWritable quantity = new DoubleWritable(Double.parseDouble(line[4].strip()));
-			Text key = new Text(line[14]);
-			context.write(key, quantity);
+			DoubleWritable quantity = new DoubleWritable(Double.parseDouble(line[4].trim()));
+			Text keyword = new Text(line[14]);
+			context.write(keyword, quantity);
 		}
 	}
 	public static class UserVisitAdRevenueReducer extends ApproximateReducer<Text, DoubleWritable, Text, DoubleWritable> {
@@ -84,7 +87,7 @@ public class UserVisitAdRevenue {
 				throw new ParseException("No input/output option");
 			}
 			if(cmdline.hasOption("t")) {
-				conf.set("map.input.table.name", cmdline.getOptionValue(t));
+				conf.set("map.input.table.name", cmdline.getOptionValue("t"));
 			}
 			if(cmdline.hasOption("w")) {
 				conf.set("map.input.where.clause", cmdline.getOptionValue("w"));
@@ -116,13 +119,13 @@ public class UserVisitAdRevenue {
 				job.setMapOutputKeyClass(Text.class);
 				job.setMapOutputValueClass(LongWritable.class);
 				job.setOutputKeyClass(Text.class);
-				job.setOutputValueClass(Text.class);
+				job.setOutputValueClass(DoubleWritable.class);
 
 				job.setPartitionerClass(ApproximatePartitioner.class);
 
 				job.setInputFormatClass(MySampleTextInputFormat.class);
 
-				FileInputFormat.addInputPath(job,   new Path(input));
+				FileInputFormat.setInputPaths(job,   new Path(input));
 				FileOutputFormat.setOutputPath(job, new Path(output+"/pilot"));
 				job.waitForCompletion(true);
 				//estimate new size according to pilot and error pilotConfidence
@@ -143,13 +146,13 @@ public class UserVisitAdRevenue {
 			job.setMapOutputKeyClass(Text.class);
 			job.setMapOutputValueClass(LongWritable.class);
 			job.setOutputKeyClass(Text.class);
-			job.setOutputValueClass(Text.class);
+			job.setOutputValueClass(DoubleWritable.class);
 
 			job.setPartitionerClass(ApproximatePartitioner.class);
 
 			job.setInputFormatClass(MySampleTextInputFormat.class);
 
-			FileInputFormat.addInputPath(job,   new Path(input));
+			FileInputFormat.setInputPaths(job,   new Path(input));
 			FileOutputFormat.setOutputPath(job, new Path(output));
 			job.waitForCompletion(true);
 
@@ -157,7 +160,7 @@ public class UserVisitAdRevenue {
 		} catch (ParseException exp){
 			System.err.println("Error parsing command line: " + exp.getMessage());
 			HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp(Index.class.toString(), options);
+			formatter.printHelp(UserVisitAdRevenue.class.toString(), options);
 			ToolRunner.printGenericCommandUsage(System.out);
 			System.exit(2);
 		}
