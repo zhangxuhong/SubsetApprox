@@ -30,7 +30,7 @@ import org.apache.log4j.Logger;
  * 
  */
 public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends WritableComparable> extends Mapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT> {
-	private static final Logger LOG = Logger.getLogger(ApproximateMapper.class);
+	private static final Logger LOG = Logger.getLogger("Subset");
 	
 	/**
 	 * This is a wrapper for Context that gets keys and adds an ID at the end to identify the cluster the data comes from.

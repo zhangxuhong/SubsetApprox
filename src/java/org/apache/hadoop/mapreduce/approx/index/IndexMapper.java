@@ -19,8 +19,10 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+import org.apache.log4j.Logger;
 
 public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
+	private static final Logger LOG = Logger.getLogger("Subset");
 
 	private long recordCount;
 	private long segSize;
@@ -42,6 +44,9 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 		delimiter = conf.get("map.input.delimiter", ",");
 		indexFields = conf.get("map.input.index.fields", "0").split("-");
 		histogram  = new ArrayList<Hashtable<String, Long>>(indexFields.length);
+		for(int i = 0; i < indexFields.length; i++){
+			histogram.add(new Hashtable<String, Long>());
+		}
 		preHistogram = null;
 	}
 	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
@@ -51,15 +56,15 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 		}
 		String[] fields = value.toString().split(delimiter);
 		//int[] index = new int[indexFields.length];
-		for(String indexField : indexFields){
-			int index = Integer.parseInt(indexField);
+		for(int i = 0; i < indexFields.length; i++){
+			int index = Integer.parseInt(indexFields[i]);
 			String keyword = fields[index];
-			Long preValue = histogram.get(index).get(keyword);
+			Long preValue = histogram.get(i).get(keyword);
 			if(preValue != null){
-				histogram.get(index).put(keyword, preValue + 1);
+				histogram.get(i).put(keyword, preValue + 1);
 			}
 			else{
-				histogram.get(index).put(keyword, new Long(1));
+				histogram.get(i).put(keyword, new Long(1));
 			}
 		}
 		recordCount++;
@@ -77,7 +82,10 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 			}
 			preSegPosition = segPosition;
 			preHistogram = histogram;
-			histogram = new ArrayList<Hashtable<String, Long>>(indexFields.length);;
+			histogram = new ArrayList<Hashtable<String, Long>>(indexFields.length);
+			for(int i = 0; i < indexFields.length; i++){
+				histogram.add(new Hashtable<String, Long>());
+			}
 			recordCount = 0;
 		}
 
@@ -109,6 +117,7 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 				}
 		  	}
 		  }
+		  LOG.info("map done");
 		} finally {
 		  cleanup(context);
 		}
