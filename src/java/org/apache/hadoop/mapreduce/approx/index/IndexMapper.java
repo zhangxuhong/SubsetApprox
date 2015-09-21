@@ -7,6 +7,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.regex.Pattern;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -20,6 +24,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import org.apache.log4j.Logger;
+import org.apache.log4j.Level;
 
 public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 	private static final Logger LOG = Logger.getLogger("Subset");
@@ -36,12 +41,14 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 
 	public void setup(Context context
                        ) throws IOException, InterruptedException {
+		LOG.setLevel(Level.INFO);
 		recordCount = 0;
 		segPosition = 0;
 		preSegPosition = 0;
 		conf = context.getConfiguration();
 		segSize = conf.getLong("map.input.segment.size", 1000);
 		delimiter = conf.get("map.input.delimiter", ",");
+		//LOG.info("delimiter:"+delimiter);
 		indexFields = conf.get("map.input.index.fields", "0").split("-");
 		histogram  = new ArrayList<Hashtable<String, Long>>(indexFields.length);
 		for(int i = 0; i < indexFields.length; i++){
@@ -54,11 +61,13 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 		if(recordCount == 0){
 			segPosition = key.get();
 		}
-		String[] fields = value.toString().split(delimiter);
+		String[] fields = (value.toString()).split(Pattern.quote(delimiter));
+		//LOG.info("size:"+fields.length);
 		//int[] index = new int[indexFields.length];
 		for(int i = 0; i < indexFields.length; i++){
 			int index = Integer.parseInt(indexFields[i]);
 			String keyword = fields[index];
+			//LOG.info("keyword:" + keyword);
 			Long preValue = histogram.get(i).get(keyword);
 			if(preValue != null){
 				histogram.get(i).put(keyword, preValue + 1);
@@ -77,6 +86,7 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 						context.write(new Text(ent.getKey() + "--" + String.valueOf(i)), 
 							new Text(String.format("%d,%d,%d", 
 								preSegPosition, segSize, ent.getValue().longValue())));
+						//LOG.info("entry:" + ent.getKey());
 					}
 				}
 			}
@@ -106,7 +116,7 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 			  			preHistogram.get(i).put(ent.getKey(), value + ent.getValue());
 			  		}
 			  		else{
-			  			preHistogram.get(i).put(ent.getKey(), value);
+			  			preHistogram.get(i).put(ent.getKey(), new Long(1));
 			  		}
 			  	}
 			  	Set<Entry<String, Long>> pEntries =  preHistogram.get(i).entrySet();
@@ -117,7 +127,7 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 				}
 		  	}
 		  }
-		  LOG.info("map done");
+		  //LOG.info("map done");
 		} finally {
 		  cleanup(context);
 		}

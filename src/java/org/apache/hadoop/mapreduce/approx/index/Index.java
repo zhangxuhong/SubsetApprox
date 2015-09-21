@@ -30,6 +30,7 @@ import org.apache.hadoop.mapreduce.approx.index.IndexPartitioner;
 import org.apache.hadoop.mapreduce.approx.index.IndexMapper;
 import org.apache.hadoop.mapreduce.approx.index.IndexReducer;
 
+import org.apache.log4j.PropertyConfigurator;
 
 public class Index {
 	/**
@@ -37,7 +38,7 @@ public class Index {
 	 */
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
-
+		//PropertyConfigurator.configure("conf/log4j.properties");
 		// Parsing options
 		String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
 		
