@@ -60,6 +60,7 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 			if (!this.precise && key instanceof Text) {
 				// Sort method with just one more character at the end
 				int clusterID = getCurrentClusterID();
+				LOG.info("taskID and clusterID:" + String.valueOf(sendTaskId) + "--" + String.valueOf(clusterID));
 				byte[] byteId = new byte[] {(byte) (sendTaskId/128), (byte) (sendTaskId%128), (byte) (clusterID/128), (byte) (clusterID%128)};
 				context.write((KEYOUT) new Text(key.toString()+new String(byteId)), value);
 				// Long method that is human readable
@@ -113,7 +114,7 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 		setup(context);
 		
 		//long t0 = System.currentTimeMillis();
-		
+		LOG.info("MaptaskID:" + String.valueOf(context.getTaskAttemptID().getTaskID().getId()));
 		// Create the context that adds an id for clustering (just if requried)
 		Context newcontext = context;
 		// If we don't do incremental, we have to IDs to the keys
@@ -124,6 +125,7 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 		}
 		
 		while (context.nextKeyValue()) {
+			LOG.info("map key:" + context.getCurrentValue().toString());
 			map(context.getCurrentKey(), context.getCurrentValue(), newcontext);
 		}
 		
@@ -148,7 +150,9 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 	protected void sendWeights(Context context) throws IOException, InterruptedException {
 		SampleFileSplit split = (SampleFileSplit)context.getInputSplit();
 		String[] keys = split.getKeys();
+		LOG.info("keys length:" + String.valueOf(keys.length));
 		String[] weights = split.getWeights();
+		LOG.info("weights length:" + String.valueOf(weights.length));
 		int taskID = context.getTaskAttemptID().getTaskID().getId();
 		byte[] byteId1 = new byte[] {(byte) (taskID/128), (byte) (taskID%128)};
 		for(int i = 0; i < keys.length; i++){
@@ -157,6 +161,7 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 			String[] segWeights = weights[i].split(Pattern.quote("*+*"));
 			for(int j = 0; j < segKeys.length; j++){
 				//may use string builder
+				LOG.info(new String(byteId1)+new String(byteId2));
 				context.write((KEYOUT) new Text(segKeys[j] + new String(byteId1) + new String(byteId2) + "-w"), (VALUEOUT) new DoubleWritable(Double.parseDouble(segWeights[j])));
 			}
 		}

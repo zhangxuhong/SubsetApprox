@@ -28,6 +28,7 @@ import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.log4j.Logger;
 
 import org.apache.hadoop.mapreduce.approx.lib.input.SampleFileSplit;
 /**
@@ -41,7 +42,7 @@ import org.apache.hadoop.mapreduce.approx.lib.input.SampleFileSplit;
 @InterfaceAudience.Public
 @InterfaceStability.Stable
 public class SampleRecordReader<K, V> extends RecordReader<K, V> {
-
+  private static final Logger LOG = Logger.getLogger("Subset.Reader");
   static final Class [] constructorSignature = new Class [] 
                                          {SampleFileSplit.class,
                                           TaskAttemptContext.class,
@@ -70,12 +71,14 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
   public boolean nextKeyValue() throws IOException, InterruptedException {
     while(nextKeyValueOrg()){
       String currentValue = ((Text)this.getCurrentValue()).toString().toLowerCase();
+      LOG.info(currentValue);
       String[] keys = this.split.getKeys(idx-1).split(Pattern.quote("*+*"));
       for(String key : keys){
       	//*************************************************************************fields separator**********************
         String[] fields = key.split(Pattern.quote("+*+"));
         for(String field : fields){
-          if(!currentValue.contains(key.toLowerCase())){
+          LOG.info("filter:" + field);
+          if(!currentValue.contains(field.toLowerCase())){
             return false;
           }
         }
@@ -89,9 +92,11 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
 
     while ((curReader == null) || !curReader.nextKeyValue()) {
       if (!initNextRecordReader()) {
+        LOG.info("next:false");
         return false;
       }
     }
+    LOG.info("next:true");
     return true;
   }
 

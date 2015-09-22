@@ -55,8 +55,10 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 
 import org.apache.hadoop.mapreduce.approx.SegmentsMap;
 import org.apache.hadoop.mapreduce.approx.SegmentsMap.Segment;
+import org.apache.log4j.Logger;
 
 public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
+  private static final Logger LOG = Logger.getLogger("Subset.InputFormat");
   public static final String SPLIT_MINSIZE_PERNODE = 
     "mapreduce.input.fileinputformat.split.minsize.per.node";
   public static final String SPLIT_MINSIZE_PERRACK = 
@@ -389,6 +391,7 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
       weight = ArrayUtils.addAll(weight, validBlocks.get(i).segWeights);
     }
 
+
      // add this split to the list that is returned
     SampleFileSplit thissplit = new SampleFileSplit(fl, offset, 
                                    length, 
@@ -396,6 +399,13 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
                                    weight,
                                    locations.toArray(new String[0]));
     splitList.add(thissplit); 
+    int index = splitList.size()-1;
+    for(int i = 0; i < offset.length; i++){
+      LOG.info("split:"+ String.valueOf(index) + " segment:" 
+        + String.valueOf(i) + " offset:" + String.valueOf(offset[i]) 
+        + " length:" + String.valueOf(length[i])
+        + " key:" + key[i]);
+    }
   }
 
   /**

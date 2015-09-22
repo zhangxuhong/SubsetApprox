@@ -33,7 +33,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.util.Progressable;
-
+import org.apache.hadoop.util.Progress;
+import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.commons.math.stat.regression.OLSMultipleLinearRegression;
 
 import org.apache.hadoop.mapreduce.approx.ApproximateLongWritable;
@@ -49,7 +50,7 @@ import org.apache.log4j.Logger;
  * @author Inigo Goiri
  */
 public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VALUEOUT extends WritableComparable> extends Reducer<KEYIN,VALUEIN,KEYOUT,VALUEOUT> {
-	private static final Logger LOG = Logger.getLogger(ApproximateReducer.class);
+	private static final Logger LOG = Logger.getLogger("Subset.Reducer");
 	
 	public static final String NULLKEY = "NULLKEY";
 	public static final char MARK_PARAM = 'w';
@@ -125,9 +126,9 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		/**
 		 * We need to store the wrapped context to forward everything.
 		 */
-		public ClusteringContext(Context context) throws IOException, InterruptedException {
+		public ClusteringContext(Context context, RawKeyValueIterator rIter) throws IOException, InterruptedException {
 			// This is just a wrapper, so we don't create anything
-			super(context.getConfiguration(), context.getTaskAttemptID(), null, null, null, null, context.getOutputCommitter(), null, (RawComparator<KEYIN>) context.getSortComparator(), (Class<KEYIN>) context.getMapOutputKeyClass(), (Class<VALUEIN>) context.getMapOutputValueClass());
+			super(context.getConfiguration(), context.getTaskAttemptID(), rIter, null, null, null, context.getOutputCommitter(), null, (RawComparator<KEYIN>) context.getSortComparator(), (Class<KEYIN>) context.getMapOutputKeyClass(), (Class<VALUEIN>) context.getMapOutputValueClass());
 
 			// Save the wrapped context
 			this.context = context;
@@ -235,7 +236,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	@Override
 	public void run(Context context) throws IOException, InterruptedException {
 		setup(context);
-		
+		LOG.info("Reduce taskID:" + String.valueOf(context.getTaskAttemptID().getTaskID().getId()));
 		// Precise
 		if (isPrecise()) {
 			while (context.nextKey()) {
@@ -250,6 +251,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			while (context.nextKey()) {
 				KEYIN key = context.getCurrentKey();
 				// handle duplicated segments
+				LOG.info(key.toString());
 				if(ti.size() == mi.size() + 1){
 					sw.add(sw.get(sw.size() -1));
 					totalSize += mi.get(mi.size()-1).longValue();
@@ -276,7 +278,24 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	 * It returns a regular context that outputs the estimated result.
 	 */
 	protected ClusteringContext getClusteringContext(Context context) throws IOException, InterruptedException {
-		return new ClusteringContext(context);
+		RawKeyValueIterator rIter = new RawKeyValueIterator() {
+	      public void close() throws IOException {
+	        //rawIter.close();
+	      }
+	      public DataInputBuffer getKey() throws IOException {
+	        return null;
+	      }
+	      public Progress getProgress() {
+	        return null;
+	      }
+	      public DataInputBuffer getValue() throws IOException {
+	        return null;
+	      }
+	      public boolean next() throws IOException {
+	        return true;
+	      }
+	    };
+		return new ClusteringContext(context, rIter);
 	}
 	
 	

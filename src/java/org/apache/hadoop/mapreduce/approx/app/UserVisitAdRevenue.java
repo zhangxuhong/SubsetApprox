@@ -35,17 +35,20 @@ import org.apache.hadoop.mapreduce.approx.ApproximateMapper;
 import org.apache.hadoop.mapreduce.approx.ApproximateReducer;
 import org.apache.hadoop.mapreduce.approx.lib.input.MySampleTextInputFormat;
 
+import org.apache.log4j.Logger;
 
 public class UserVisitAdRevenue {
 	/**
 	 * Launch wikipedia page rank.
 	 */
 	public static class UserVisitAdRevenueMapper extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
+		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			String[] line = value.toString().split(Pattern.quote("|"));
 			if(line[14].trim().equals("AIR")){
 				DoubleWritable quantity = new DoubleWritable(Double.parseDouble(line[4].trim()));
 				Text keyword = new Text(line[14]);
+				LOG.info("App key:" + keyword);
 			// if more than one keyword, concatenate using "+*+" 
 				context.write(keyword, quantity);
 			}

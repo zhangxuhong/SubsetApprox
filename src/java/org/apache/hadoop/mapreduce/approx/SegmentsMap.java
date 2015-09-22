@@ -239,7 +239,7 @@ public class SegmentsMap {
               newSeg = new Segment(Long.parseLong(meta[1]), Long.parseLong(meta[2]), Long.parseLong(meta[3]));
               //newSeg.addKeyword(meta[0]);
               //newSeg.addFrequency(Long.parseLong(meta[4]));
-              newSeg.addHistogramRecord(meta[0], Long.parseLong(meta[3]));
+              newSeg.addHistogramRecord(meta[0], Long.parseLong(meta[4]));
               segTable.put(meta[1], newSeg);
             }
             else{

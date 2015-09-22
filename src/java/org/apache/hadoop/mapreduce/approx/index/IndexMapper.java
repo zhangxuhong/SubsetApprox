@@ -19,7 +19,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
-
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
@@ -57,7 +57,28 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 		preHistogram = null;
 	}
 	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-		
+		if(recordCount == segSize){
+			if(preHistogram != null){
+				//emit histogram for last segment;
+				long currentPosition = key.get();
+				for(int i = 0; i < preHistogram.size(); i++){
+					Set<Entry<String, Long>> entries =  preHistogram.get(i).entrySet();
+					for(Entry<String, Long> ent : entries){
+						context.write(new Text(ent.getKey() + "++" + String.valueOf(preSegPosition) + "--" + String.valueOf(i)), 
+							new Text(String.format("%d,%d,%d,%d", 
+								preSegPosition, currentPosition - preSegPosition, segSize, ent.getValue().longValue())));
+						//LOG.info("entry:" + ent.getKey());
+					}
+				}
+			}
+			preSegPosition = segPosition;
+			preHistogram = histogram;
+			histogram = new ArrayList<Hashtable<String, Long>>(indexFields.length);
+			for(int i = 0; i < indexFields.length; i++){
+				histogram.add(new Hashtable<String, Long>());
+			}
+			recordCount = 0;
+		}
 		if(recordCount == 0){
 			segPosition = key.get();
 		}
@@ -77,27 +98,7 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 			}
 		}
 		recordCount++;
-		if(recordCount == segSize){
-			if(preHistogram != null){
-				//emit histogram for last segment;
-				for(int i = 0; i < preHistogram.size(); i++){
-					Set<Entry<String, Long>> entries =  preHistogram.get(i).entrySet();
-					for(Entry<String, Long> ent : entries){
-						context.write(new Text(ent.getKey() + "++" + String.valueOf(preSegPosition) + "--" + String.valueOf(i)), 
-							new Text(String.format("%d,%d,%d", 
-								preSegPosition, segSize, ent.getValue().longValue())));
-						//LOG.info("entry:" + ent.getKey());
-					}
-				}
-			}
-			preSegPosition = segPosition;
-			preHistogram = histogram;
-			histogram = new ArrayList<Hashtable<String, Long>>(indexFields.length);
-			for(int i = 0; i < indexFields.length; i++){
-				histogram.add(new Hashtable<String, Long>());
-			}
-			recordCount = 0;
-		}
+		
 
 	}
 
@@ -120,10 +121,12 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 			  		}
 			  	}
 			  	Set<Entry<String, Long>> pEntries =  preHistogram.get(i).entrySet();
+			  	FileSplit split = (FileSplit)context.getInputSplit();
+			  	long currentPosition = split.getStart() + split.getLength();
 				for(Entry<String, Long> ent : pEntries){
 					context.write(new Text(ent.getKey()  + "++" + String.valueOf(preSegPosition) + "--" + String.valueOf(i)), 
-						new Text(String.format("%d,%d,%d", 
-							preSegPosition, segSize + recordCount, ent.getValue().longValue())));
+						new Text(String.format("%d,%d,%d,%d", 
+							preSegPosition, currentPosition - preSegPosition, segSize + recordCount, ent.getValue().longValue())));
 				}
 		  	}
 		  }
