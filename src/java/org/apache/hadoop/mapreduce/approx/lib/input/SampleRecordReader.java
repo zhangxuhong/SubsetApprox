@@ -71,18 +71,21 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
   public boolean nextKeyValue() throws IOException, InterruptedException {
     while(nextKeyValueOrg()){
       String currentValue = ((Text)this.getCurrentValue()).toString().toLowerCase();
-      LOG.info(currentValue);
+      //LOG.info(currentValue);
       String[] keys = this.split.getKeys(idx-1).split(Pattern.quote("*+*"));
       for(String key : keys){
       	//*************************************************************************fields separator**********************
         String[] fields = key.split(Pattern.quote("+*+"));
+        boolean containCurrentKey = true;
         for(String field : fields){
-          LOG.info("filter:" + field);
+          //LOG.info("filter:" + field);
           if(!currentValue.contains(field.toLowerCase())){
-            return false;
+            containCurrentKey = false;
           }
         }
-        return true;
+        if(containCurrentKey){
+          return true;
+        }
       } 
     }
     return false;
@@ -92,11 +95,11 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
 
     while ((curReader == null) || !curReader.nextKeyValue()) {
       if (!initNextRecordReader()) {
-        LOG.info("next:false");
+        //LOG.info("next:false");
         return false;
       }
     }
-    LOG.info("next:true");
+    //LOG.info("next:true");
     return true;
   }
 
