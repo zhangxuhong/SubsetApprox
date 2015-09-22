@@ -18,19 +18,23 @@ import java.util.Iterator;
 import java.util.Map;
 import java.lang.Math;
 import java.lang.Comparable;
+import java.util.regex.Pattern;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.LineReader;
+import org.apache.log4j.Logger;
 
 public class SegmentsMap {
+
+  private static final Logger LOG = Logger.getLogger("Subset.Segmap");
 
   private Configuration conf;
   private Path path;
   private static String FILE_PARENT="/index/table"; // e.g. "hdfs://brick0:54310/metis";
-  private static String FILE_PREFIX="part-0000";
+  private static String FILE_PREFIX="part-r-0000";
 
   public SegmentsMap (Configuration conf, Path path){
     this.conf = conf;
@@ -80,7 +84,7 @@ public class SegmentsMap {
 
     public int getKeyWeight(String key){
       //return (double)frequency[0]/rows;
-      String[] fields = key.split("+*+");
+      String[] fields = key.split(Pattern.quote("+*+"));
       double w = 1;
       for(String field : fields){
         w = w * (histogram.get(field) / (double)rows);
@@ -103,12 +107,21 @@ public class SegmentsMap {
     private String weights;
 
     public void addWeight(double weight){
-      weights = weights + "*+*" + String.valueOf(weight);
+      if(this.weights == null){
+        this.weights = String.valueOf(weight);
+      }
+      else{
+        weights = weights + "*+*" + String.valueOf(weight);
+      }
     }
 
     public void addKey(String onekey){
-
-      keys = keys + "*+*" + onekey;
+      if(this.keys == null){
+        this.keys = onekey;
+      }
+      else{
+        keys = keys + "*+*" + onekey;
+      }
     }
 
     public String getWeights(){
@@ -127,7 +140,7 @@ public class SegmentsMap {
 
     List<Segment> sampleSegmentsList = new ArrayList<Segment>();
 		//array need to be sorted based offset.
-    String[] whereKeys = conf.get("map.input.where.clause", null).split(",");
+    String[] whereKeys = conf.get("map.input.where.clause", null).split(Pattern.quote(","));
     String groupBy = conf.get("map.input.groupby.clause", null);
     
     ArrayList<String> filterKeys = new ArrayList<String>();
@@ -207,24 +220,26 @@ public class SegmentsMap {
       String indexfile = this.FILE_PARENT + "/" + tableName + "/" + this.FILE_PREFIX;
       String filterKey = "";
       for(String wherekey : wherekeys){
-        String fieldIndex = wherekey.split("=")[0];
-        String key = wherekey.split("=")[1];
+        String fieldIndex = wherekey.split(Pattern.quote("="))[0];
+        String key = wherekey.split(Pattern.quote("="))[1];
         filterKey = key + "+*+" + filterKey;
         FileSystem fs = FileSystem.get(conf);;
         Path newPath = new Path(indexfile + fieldIndex);
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fs.open(newPath)));
-        String line = "  ";
+        String line = bufferedReader.readLine();
         while (line != null) {
           //System.out.println(line);
-          line = bufferedReader.readLine();
-          String[] meta = line.split(",");
+          
+          //LOG.info(line);
+          String[] meta = line.split(Pattern.quote(","));
+          //LOG.info(line + meta.length);
           if(meta[0].equals(key)){
             Segment newSeg = segTable.get(meta[1]);
             if(newSeg == null){
               newSeg = new Segment(Long.parseLong(meta[1]), Long.parseLong(meta[2]), Long.parseLong(meta[3]));
               //newSeg.addKeyword(meta[0]);
               //newSeg.addFrequency(Long.parseLong(meta[4]));
-              newSeg.addHistogramRecord(meta[0], Long.parseLong(meta[4]));
+              newSeg.addHistogramRecord(meta[0], Long.parseLong(meta[3]));
               segTable.put(meta[1], newSeg);
             }
             else{
@@ -234,6 +249,7 @@ public class SegmentsMap {
             }
             
           }
+          line = bufferedReader.readLine();
         }
       }
       
@@ -243,11 +259,11 @@ public class SegmentsMap {
         Path newPath = new Path(indexfile + groupBy);
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fs.open(newPath)));
         String line = bufferedReader.readLine();
-        String[] meta = line.split(",");
+        String[] meta = line.split(Pattern.quote(","));
         String preKey = meta[0];
         while (line != null) {
           //System.out.println(line);
-          meta = line.split(",");
+          meta = line.split(Pattern.quote(","));
           Segment newSeg = segTable.get(meta[1]);
           if(newSeg == null){
             newSeg = new Segment(Long.parseLong(meta[1]), Long.parseLong(meta[2]), Long.parseLong(meta[3]));

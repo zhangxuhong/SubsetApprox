@@ -20,6 +20,7 @@ package org.apache.hadoop.mapreduce.approx.lib.input;
 
 import java.io.*;
 import java.lang.reflect.*;
+import java.util.regex.Pattern;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -69,10 +70,10 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
   public boolean nextKeyValue() throws IOException, InterruptedException {
     while(nextKeyValueOrg()){
       String currentValue = ((Text)this.getCurrentValue()).toString().toLowerCase();
-      String[] keys = this.split.getKeys(idx-1).split("*+*");
+      String[] keys = this.split.getKeys(idx-1).split(Pattern.quote("*+*"));
       for(String key : keys){
       	//*************************************************************************fields separator**********************
-        String[] fields = key.split("+*+");
+        String[] fields = key.split(Pattern.quote("+*+"));
         for(String field : fields){
           if(!currentValue.contains(key.toLowerCase())){
             return false;

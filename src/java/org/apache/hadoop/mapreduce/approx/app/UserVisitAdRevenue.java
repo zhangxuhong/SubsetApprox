@@ -3,6 +3,7 @@ package org.apache.hadoop.mapreduce.approx.app;
 import java.lang.Exception;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.regex.Pattern;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -41,10 +42,14 @@ public class UserVisitAdRevenue {
 	 */
 	public static class UserVisitAdRevenueMapper extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-			String[] line = value.toString().split("|");
-			DoubleWritable quantity = new DoubleWritable(Double.parseDouble(line[4].trim()));
-			Text keyword = new Text(line[14]);
-			context.write(keyword, quantity);
+			String[] line = value.toString().split(Pattern.quote("|"));
+			if(line[14].trim().equals("AIR")){
+				DoubleWritable quantity = new DoubleWritable(Double.parseDouble(line[4].trim()));
+				Text keyword = new Text(line[14]);
+			// if more than one keyword, concatenate using "+*+" 
+				context.write(keyword, quantity);
+			}
+			
 		}
 	}
 	public static class UserVisitAdRevenueReducer extends ApproximateReducer<Text, DoubleWritable, Text, DoubleWritable> {
@@ -144,7 +149,7 @@ public class UserVisitAdRevenue {
 			job.setReducerClass(UserVisitAdRevenueReducer.class);
 
 			job.setMapOutputKeyClass(Text.class);
-			job.setMapOutputValueClass(LongWritable.class);
+			job.setMapOutputValueClass(DoubleWritable.class);
 			job.setOutputKeyClass(Text.class);
 			job.setOutputValueClass(DoubleWritable.class);
 

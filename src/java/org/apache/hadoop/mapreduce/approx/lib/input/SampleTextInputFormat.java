@@ -460,14 +460,17 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
             long[] segmentLengths = null;
             ArrayList<String> segmentKeys = new ArrayList<String>();
             ArrayList<String> segmentWeights = new ArrayList<String>();
-            while(sampleSegList[j].getOffset() >= blkOffset && sampleSegList[j].getOffset() < blkOffset + blklength){
+            int k = j;
+            while(j < sampleSegList.length && sampleSegList[j].getOffset() >= blkOffset && sampleSegList[j].getOffset() < blkOffset + blklength){
             	segmentOffsets = ArrayUtils.addAll(segmentOffsets ,new long[]{sampleSegList[j].getOffset()});
             	segmentLengths = ArrayUtils.addAll(segmentLengths ,new long[]{sampleSegList[j].getLength()});
               segmentKeys.add(sampleSegList[j].getKeys());
               segmentWeights.add(sampleSegList[j].getWeights());
             	j++;
             }
-            
+            if(j == k){
+              continue;
+            }
           	long[] myOffset = segmentOffsets;
           	long[] myLength = segmentLengths;
             String[] mykey = segmentKeys.toArray(new String[segmentKeys.size()]);

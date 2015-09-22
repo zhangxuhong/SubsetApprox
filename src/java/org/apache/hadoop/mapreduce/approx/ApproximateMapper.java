@@ -2,6 +2,7 @@ package org.apache.hadoop.mapreduce.approx;
 
 import java.io.IOException;
 import java.lang.Double;
+import java.util.regex.Pattern;
 
 import org.apache.hadoop.mapreduce.Mapper;
 
@@ -152,8 +153,8 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 		byte[] byteId1 = new byte[] {(byte) (taskID/128), (byte) (taskID%128)};
 		for(int i = 0; i < keys.length; i++){
 			byte[] byteId2 = new byte[] {(byte) (i/128), (byte) (i%128)};
-			String[] segKeys = keys[i].split("*+*");
-			String[] segWeights = weights[i].split("*+*");
+			String[] segKeys = keys[i].split(Pattern.quote("*+*"));
+			String[] segWeights = weights[i].split(Pattern.quote("*+*"));
 			for(int j = 0; j < segKeys.length; j++){
 				//may use string builder
 				context.write((KEYOUT) new Text(segKeys[j] + new String(byteId1) + new String(byteId2) + "-w"), (VALUEOUT) new DoubleWritable(Double.parseDouble(segWeights[j])));
