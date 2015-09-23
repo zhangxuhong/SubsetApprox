@@ -56,12 +56,12 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	public static final char MARK_PARAM = 'w';
 	// If we are doing the precise or execution
 	protected boolean precise = false;
-	
+	protected Configuration approxConf;
 	// Keep track of what was the last key
 	protected String prevKey = null;
 	
 	protected int reducerId = 0;
-	protected int n = 0;
+	//protected int n = 0;
 	
 	// cluster total
 	protected ArrayList<Double> ti;
@@ -83,14 +83,14 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	protected double total;
 	protected double variance;
 	protected double s2;
-	protected long totalSize;
+	protected long totalSize = 0;
 	protected boolean isWeight;
 	
 	protected double msb;
 	protected double msw;
 	protected double sst;
 	protected double k;
-	protected long weightedSize;
+	protected double weightedSize;
 	protected double deff_p;
 	protected double deff_c;
 	/**
@@ -99,8 +99,8 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	@Override
 	public void setup(Context context) {
 		// Check if we are precise or not
-		Configuration conf = context.getConfiguration();
-		precise = conf.getBoolean("mapred.job.precise", false);
+		approxConf = context.getConfiguration();
+		precise = approxConf.getBoolean("mapred.job.precise", false);
 		
 		reducerId = context.getTaskAttemptID().getTaskID().getId();
 		
@@ -112,8 +112,8 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			//yi_mean = new ArrayList<Double>();
 			sw = new ArrayList<Double>();
 			isWeight = false;
-			error = Double.parseDouble(conf.get("mapred.job.error", "1.0"));
-			confidence = Double.parseDouble(conf.get("mapred.job.confidence", "-1.0"));
+			error = Double.parseDouble(approxConf.get("mapred.job.error", "1.0"));
+			confidence = Double.parseDouble(approxConf.get("mapred.job.confidence", "-1.0"));
 		}
 	}
 	
@@ -128,7 +128,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		 */
 		public ClusteringContext(Context context, RawKeyValueIterator rIter) throws IOException, InterruptedException {
 			// This is just a wrapper, so we don't create anything
-			super(context.getConfiguration(), context.getTaskAttemptID(), rIter, null, null, null, context.getOutputCommitter(), null, (RawComparator<KEYIN>) context.getSortComparator(), (Class<KEYIN>) context.getMapOutputKeyClass(), (Class<VALUEIN>) context.getMapOutputValueClass());
+			super(approxConf, context.getTaskAttemptID(), rIter, null, null, null, context.getOutputCommitter(), null, (RawComparator<KEYIN>) context.getSortComparator(), (Class<KEYIN>) context.getMapOutputKeyClass(), (Class<VALUEIN>) context.getMapOutputValueClass());
 
 			// Save the wrapped context
 			this.context = context;
@@ -141,13 +141,16 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 
 		public void saveCurrentResult() throws IOException,InterruptedException {
 			// key need to be consistent with segmap
-			if(conf.getBoolean("map.input.sample.pilot", false)){
+			estimateSampleSize();
+			if(approxConf.getBoolean("map.input.sample.pilot", false)){
 				context.getCounter("sampleSize", prevKey).setValue(estimateSampleSize());
 			}
-			double[] result = estimateCurrentResult();
-			double tauhat   = result[0];
-			double interval = result[1];
-			context.write((KEYOUT) new Text(prevKey), (VALUEOUT) new ApproximateDoubleWritable(tauhat, interval));
+			//else{
+				double[] result = estimateCurrentResult();
+				double tauhat   = result[0];
+				double interval = result[1];
+				context.write((KEYOUT) new Text(prevKey), (VALUEOUT) new ApproximateDoubleWritable(tauhat, interval));
+			//}
 		}
 		
 		/**
@@ -247,22 +250,25 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		} else {
 			// We wrap the context to capture the writing of the keys
 			ClusteringContext clusteringContext = getClusteringContext(context);
-			
-			while (context.nextKey()) {
-				KEYIN key = context.getCurrentKey();
-				// handle duplicated segments
-				LOG.info(key.toString());
-				if(ti.size() == mi.size() + 1){
-					sw.add(sw.get(sw.size() -1));
-					totalSize += mi.get(mi.size()-1).longValue();
-					mi.add(mi.get(mi.size()-1));
+			if(approxConf.getBoolean("map.input.sample.pilot", true)){
+				while (context.nextKey()) {
+					KEYIN key = context.getCurrentKey();
+					// handle duplicated segments
+					//LOG.info(key.toString());
+					
+					pliotReduce(key, context.getValues(), clusteringContext);
+					
 				}
-				reduce(key, context.getValues(), clusteringContext);
-				if(!isWeight){
-					calculateClusterMean(context.getValues());
-				}
-				
 			}
+			else{
+				while (context.nextKey()) {
+					KEYIN key = context.getCurrentKey();
+					// handle duplicated segments
+					//LOG.info(key.toString());
+					 reduce(key, context.getValues(), clusteringContext);	
+				}
+			}
+
 			
 			// We need to treat the last key (not parameters)
 			if (prevKey != null) {
@@ -320,18 +326,23 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	
 	protected double[] estimateCurrentResult(boolean reset) {
 		// Estimate the result
+
 		double sum = 0.0;
 		s2 = 0.0;
 		for (int i = 0; i < ti.size(); i++ ) {
 			sum += ti.get(i).doubleValue()/wi.get(i).doubleValue();
+			LOG.info("ti:" + String.valueOf(ti.get(i).doubleValue()));
+			LOG.info("wi:" + String.valueOf(wi.get(i).doubleValue()));
 		}
 		total = sum/ti.size();
+		LOG.info("total:" + String.valueOf(total));
 		sum = 0.0;
 		for (int i = 0; i < ti.size(); i++ ) {
 			sum += Math.pow(ti.get(i).doubleValue()/wi.get(i).doubleValue() - total, 2);
 		}
 		s2 = sum/(ti.size()-1);
-		variance = Math.sqrt(s2/n);
+		variance = Math.sqrt(s2/ti.size());
+		LOG.info("var:" + String.valueOf(variance));
 		wi.clear();
 		ti.clear();
 		return new double[] {total, tscore*variance};
@@ -348,56 +359,54 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			deff_p += Math.pow(wi.get(i).doubleValue(), 2);
 		}
 		deff_p = deff_p / Math.pow(wi_sum, 2);
+		LOG.info("deff_p:" + String.valueOf(deff_p));
+		LOG.info("totalSize:" + String.valueOf(totalSize));
 		y_mean = y_mean / totalSize;
+		LOG.info("y_mean:" + String.valueOf(y_mean));
 		msb = 0.0;
 		msw = 0.0;
 		k = 0.0;
-		weightedSize = 0;
+		weightedSize = 0.0;
 		for(int i = 0; i < clusterSize; i++){
 			long ni = mi.get(i).longValue();
 			msb += Math.pow((ti.get(i).doubleValue()/ni - y_mean), 2) * ni;
 			msw += sw.get(i).doubleValue();
 			k += Math.pow(ni, 2);
-			weightedSize += ni * wi.get(i).doubleValue();
+			weightedSize += ni * ((double)ni / totalSize);
 		}
+		LOG.info("weightedSize:" + String.valueOf(weightedSize));
 		sst = msb + msw;
+		LOG.info("sst:" + String.valueOf(sst));
 		msb = msb / (clusterSize - 1);
+		LOG.info("msb:" + String.valueOf(msb));
 		msw = msw / (totalSize - clusterSize);
-		k = (1/(clusterSize -1)) * (totalSize - k / totalSize);
+		LOG.info("msw:" + String.valueOf(msw));
+		k = (1.0/(clusterSize -1)) * (totalSize - k / (double)totalSize);
+		LOG.info("k:" + String.valueOf(k));
 		double p_aov = (msb - msw) / (msb + (k-1)*msw);
+		LOG.info("p_aov:" + String.valueOf(p_aov));
 		deff_c = 1 + (weightedSize -1) * p_aov;
+		LOG.info("deff_c:" + String.valueOf(deff_c));
 
 		//calculate size 
 		if(confidence > 0){
 			tscore = getTScore(totalSize-1, confidence);
 		}
 		long srs = (long)Math.ceil((sst/(totalSize-1) * Math.pow(tscore, 2)) / Math.pow(error, 2));
+		LOG.info("srs:" + String.valueOf(srs));
 		mi.clear();
 		sw.clear();
 		//yi_mean.clear()
-		return (long)Math.ceil((deff_p * deff_c) * srs);
+		double deff = deff_p * deff_c;
+		LOG.info("deff:" + String.valueOf(deff));
+		long desiredSize = (long)Math.ceil(deff * srs);
+		LOG.info("size:" + String.valueOf(desiredSize));
+		return desiredSize;
 	}
 
-	private void calculateClusterMean(Iterable<VALUEIN> values) {
-		double sum = 0.0;
-		long numRecords = 0;
-		for(VALUEIN value: values){
-			double val = 0.0;
-			if (value instanceof LongWritable) {
-				val = (double)(((LongWritable) value).get());
-			} else if (value instanceof IntWritable) {
-				val = (double)(((IntWritable) value).get());
-			} else if (value instanceof DoubleWritable) {
-				val = (double)(((DoubleWritable) value).get());
-			} else if (value instanceof FloatWritable) {
-				val = (double)(((FloatWritable) value).get());
-			}
-			numRecords++;
-			sum += val;
-		}
-		double mean = sum / numRecords;
+	private void calculateClusterSw(double mean, ArrayList<VALUEIN> values) {
 		//yi_mean.add(mean);
-		sum = 0.0;
+		double sum = 0.0;
 		for(VALUEIN value: values){
 			double val = 0.0;
 			if (value instanceof LongWritable) {
@@ -412,8 +421,6 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			sum += Math.pow((val - mean), 2);
 		}
 		sw.add(sum);
-		totalSize += numRecords;
-		mi.add(numRecords);
 	}
 
 
@@ -426,5 +433,42 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		} catch (Exception e) { }
 		return tscore;
 	}
+
+	protected void pliotReduce(KEYIN key, Iterable<VALUEIN> values, Context context
+                        ) throws IOException, InterruptedException {
+	    
+		double sum = 0.0;
+		long numRecords = 0;
+		ArrayList<VALUEIN> cache = new ArrayList<VALUEIN>();
+		for(VALUEIN value: values){
+			cache.add(value);
+			double val = 0.0;
+			if (value instanceof LongWritable) {
+				val = (double)(((LongWritable) value).get());
+			} else if (value instanceof IntWritable) {
+				val = (double)(((IntWritable) value).get());
+			} else if (value instanceof DoubleWritable) {
+				val = (double)(((DoubleWritable) value).get());
+			} else if (value instanceof FloatWritable) {
+				val = (double)(((FloatWritable) value).get());
+			}
+			numRecords++;
+			sum += val;
+		}
+		context.write((KEYOUT) key, (VALUEOUT) new DoubleWritable(sum));
+		if(!isWeight){
+			totalSize += numRecords;
+			LOG.info("totalSize+:" + String.valueOf(totalSize));
+			mi.add(numRecords);  
+		    double mean = sum / numRecords;
+		    calculateClusterSw(mean, cache);
+		}
+		if(ti.size() == mi.size() + 1){
+			sw.add(sw.get(sw.size() -1));
+			totalSize += mi.get(mi.size()-1).longValue();
+			LOG.info("totalSize-:" + String.valueOf(totalSize));
+			mi.add(mi.get(mi.size()-1));
+		}
+  	}
 	
 }

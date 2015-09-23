@@ -127,3 +127,8 @@ efficient online
 "mapreduce.input.fileinputformat.split.minsize.per.node"
 "mapreduce.input.fileinputformat.split.minsize.per.rack"
 "mapreduce.input.fileinputformat.split.maxsize"
+
+
+clusterID = ((NewTrackingRecordReader)reader).getRecordReader();
+
+ssh -N -f -L 54444:compute-0-0:50030 xzhang@cass.eecs.ucf.edu

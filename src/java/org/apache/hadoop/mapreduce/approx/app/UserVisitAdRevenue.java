@@ -48,7 +48,7 @@ public class UserVisitAdRevenue {
 			if(line[14].trim().equals("AIR")){
 				DoubleWritable quantity = new DoubleWritable(Double.parseDouble(line[4].trim()));
 				Text keyword = new Text(line[14]);
-				LOG.info("App key:" + keyword);
+				//LOG.info("App key:" + keyword);
 			// if more than one keyword, concatenate using "+*+" 
 				context.write(keyword, quantity);
 			}
