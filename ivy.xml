@@ -22,6 +22,8 @@
     <artifact conf="master"/>
   </publications>
   <dependencies>
+    <dependency org="com.googlecode.json-simple" name="json-simple" rev="1.1" conf="common->default"/>
+
     <dependency org="org.apache.commons" name="commons-lang3" rev="3.0" conf="common->default"/>
 
     <dependency org="commons-math" name="commons-math" rev="1.1" conf="common->default"/>
