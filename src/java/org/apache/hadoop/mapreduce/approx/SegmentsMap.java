@@ -151,23 +151,43 @@ public class SegmentsMap {
       weightedSegs.add(new WeightedItem<Segment>(1, seg));
     }
 
-    if(conf.getBoolean("map.input.sampling.ratio", false)){
-      double ratio = Double.parseDouble(conf.get("map.input.sample.ratio.value", "0.01"));
-      for(String filterKey : filterKeys){
-        for(WeightedItem<Segment> seg : weightedSegs){
-          seg.setWeight(seg.getItem().getKeyWeight(filterKey));
+    if(! conf.getBoolean("map.input.sampling.error", false)){
+      if(conf.getBoolean("map.input.sampling.ratio", false)){
+        double ratio = Double.parseDouble(conf.get("map.input.sample.ratio.value", "0.01"));
+        for(String filterKey : filterKeys){
+          for(WeightedItem<Segment> seg : weightedSegs){
+            seg.setWeight(seg.getItem().getKeyWeight(filterKey));
+          }
+          this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, ratio);
         }
-        this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, ratio);
+      } else {
+        long sampleSize = conf.getLong("map.input.sample.size", 100000);
+        for(String filterKey : filterKeys){
+          for(WeightedItem<Segment> seg : weightedSegs){
+            seg.setWeight(seg.getItem().getKeyWeight(filterKey));
+          }
+          this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, sampleSize);
+        }
       }
     }
     else{
       long sampleSize = 0;
-      for(String filterKey : filterKeys){
-        for(WeightedItem<Segment> seg : weightedSegs){
-          seg.setWeight(seg.getItem().getKeyWeight(filterKey));
+      if(conf.getBoolean("map.input.sample.pilot", false)){
+        sampleSize = conf.getLong("map.input.sample.size", 10000);
+        for(String filterKey : filterKeys){
+          for(WeightedItem<Segment> seg : weightedSegs){
+            seg.setWeight(seg.getItem().getKeyWeight(filterKey));
+          }
+          this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, sampleSize);
         }
-        sampleSize = conf.getLong("map.input.sample.size." + filterKey, 0);
-        this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, sampleSize);
+      } else {
+        for(String filterKey : filterKeys){
+          for(WeightedItem<Segment> seg : weightedSegs){
+            seg.setWeight(seg.getItem().getKeyWeight(filterKey));
+          }
+          sampleSize = conf.getLong("map.input.sample.size." + filterKey, 0);
+          this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, sampleSize);
+        }
       }
     }
     

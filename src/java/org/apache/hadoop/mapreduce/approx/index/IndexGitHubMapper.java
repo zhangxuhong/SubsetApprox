@@ -28,6 +28,7 @@ import org.apache.log4j.Level;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 	private static final Logger LOG = Logger.getLogger("Subset");
@@ -90,34 +91,40 @@ public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 		//String[] fields = (value.toString()).split(Pattern.quote(delimiter));
 		//LOG.info("size:"+fields.length);
 		//int[] index = new int[indexFields.length];
-		JSONObject line = (JSONObject)parser.parse(value.toString());
-		for(int i = 0; i < indexFields.length; i++){
-			int index = Integer.parseInt(indexFields[i]);
-			String keyword = "";
-			if(index == 0)//date
-			{	if(line.containsKey("type")){
-					keyword = (String)line.get("type");
+		
+		String keyword = "";
+		try{
+			JSONObject line = (JSONObject)parser.parse(value.toString());
+			for(int i = 0; i < indexFields.length; i++){
+				int index = Integer.parseInt(indexFields[i]);
+				keyword = "";
+				if(index == 0)//date
+				{	if(line.containsKey("type")){
+						keyword = (String)line.get("type");
+					}
+					
+				}else if (index == 1) {
+					if(line.containsKey("")){
+						keyword = (String)line.get("");
+					}
+					
+				}else {
+					if(line.containsKey("")){
+						keyword = (String)line.get("");
+					}
+					
 				}
-				
-			}else if (index == 1) {
-				if(line.containsKey("")){
-					keyword = (String)line.get("");
+				//LOG.info("keyword:" + keyword);
+				Long preValue = histogram.get(i).get(keyword);
+				if(preValue != null){
+					histogram.get(i).put(keyword, preValue + 1);
 				}
-				
-			}else {
-				if(line.containsKey("")){
-					keyword = (String)line.get("");
+				else{
+					histogram.get(i).put(keyword, new Long(1));
 				}
-				
 			}
-			//LOG.info("keyword:" + keyword);
-			Long preValue = histogram.get(i).get(keyword);
-			if(preValue != null){
-				histogram.get(i).put(keyword, preValue + 1);
-			}
-			else{
-				histogram.get(i).put(keyword, new Long(1));
-			}
+		} catch (ParseException e){
+			e.printStackTrace();
 		}
 		recordCount++;
 		

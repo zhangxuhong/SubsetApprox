@@ -134,6 +134,38 @@ clusterID = ((NewTrackingRecordReader)reader).getRecordReader();
 ssh -N -f -L 54444:compute-0-0:50030 xzhang@cass.eecs.ucf.edu
 
 
-hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.UserVisitAdRevenue -r 0.1 -w 1=AIR -t lineitem -i /subset/tpc/lineitem.tbl -o /tmp
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -s 100000 -w 0=PushEvent -t github -i /2015-01.json -o /github
 
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.index.IndexUserVisit -s 10000 -f 2-4-5 -t uservisit -i /test/uservist.test
+
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.index.IndexGitHub -s 10000 -f 0 -t github -i /2015-01.json
+
+github
+
+
+def printType1(file):
+	a = json.loads(file.readline())
+	print(a['type'])
+	return a
+
+
+push event
+['payload']['size']
+['org'] true or false
+issuecomments event
+
+['payload']['issue']['comments']
+
+pullrequest
+
+c['payload']['pull_request']['additions']
+
+fork
+['payload']['forkee']['size']
+[][]['watchers'] watchers_count
+
+issue event
+
+['payload']['issue']['comments']
+
+33GB, 11:46:43----11:49:55

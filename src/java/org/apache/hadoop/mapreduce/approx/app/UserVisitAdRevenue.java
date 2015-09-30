@@ -84,6 +84,8 @@ public class UserVisitAdRevenue {
 		options.addOption("c", "confidence", true, "confidence level");
 		options.addOption("i", "input",    true,  "Input file");
 		options.addOption("o", "output",   true,  "Output file");
+		options.addOption("f", "filter", true, "filter keyword");
+		options.addOption("s", "size", true, "sampling size");
 
 		try {
 			CommandLine cmdline = new GnuParser().parse(options, otherArgs);
@@ -99,18 +101,28 @@ public class UserVisitAdRevenue {
 			}
 			if(cmdline.hasOption("w")) {
 				conf.set("map.input.where.clause", cmdline.getOptionValue("w"));
+				conf.set("map.input.filter", cmdline.getOptionValue("w").split("-")[1]);
 			}
 			if(cmdline.hasOption("g")) {
 				conf.set("map.input.groupby.clause", cmdline.getOptionValue("g"));
 			}
 			if(cmdline.hasOption("r")){
 				conf.setBoolean("map.input.sampling.ratio", true);
+				conf.setBoolean("map.input.sampling.error", false);
 				conf.set("map.input.sampling.ratio.value", cmdline.getOptionValue("r"));
+			}
+			if(cmdline.hasOption("s")){
+				conf.setLong("map.input.sample.size", Long.parseLong(cmdline.getOptionValue("s")));
+				conf.setBoolean("map.input.sampling.error", false);
 			}
 			if(cmdline.hasOption("e")){
 				isError = true;
 				conf.set("mapred.job.error",cmdline.getOptionValue("e"));
 				conf.set("mapred.job.confidence",cmdline.getOptionValue("c"));
+				conf.setBoolean("map.input.sampling.error", true);
+			}
+			if(cmdline.hasOption("f")){
+				
 			}
 
 			//cmdline.getOptionValue
