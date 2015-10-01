@@ -28,6 +28,8 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.CounterGroup;
 import org.apache.hadoop.mapreduce.Counter;
+import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 
 
 import org.apache.hadoop.mapreduce.approx.ApproximatePartitioner;
@@ -86,6 +88,8 @@ public class UserVisitAdRevenue {
 		options.addOption("o", "output",   true,  "Output file");
 		options.addOption("f", "filter", true, "filter keyword");
 		options.addOption("s", "size", true, "sampling size");
+		options.addOption("p", "precise", false, "disable approximation");
+		options.addOption("m", "max", true, "max split size");
 
 		try {
 			CommandLine cmdline = new GnuParser().parse(options, otherArgs);
@@ -93,6 +97,8 @@ public class UserVisitAdRevenue {
 			String output = cmdline.getOptionValue("o");
 			int numReducer = 1;
 			boolean isError = false;
+			boolean isPrecise = false;
+			//long maxsize = 67108864;
 			if (input == null || output == null) {
 				throw new ParseException("No input/output option");
 			}
@@ -101,7 +107,7 @@ public class UserVisitAdRevenue {
 			}
 			if(cmdline.hasOption("w")) {
 				conf.set("map.input.where.clause", cmdline.getOptionValue("w"));
-				conf.set("map.input.filter", cmdline.getOptionValue("w").split("-")[1]);
+				conf.set("map.input.filter", cmdline.getOptionValue("w").split("=")[1]);
 			}
 			if(cmdline.hasOption("g")) {
 				conf.set("map.input.groupby.clause", cmdline.getOptionValue("g"));
@@ -121,8 +127,34 @@ public class UserVisitAdRevenue {
 				conf.set("mapred.job.confidence",cmdline.getOptionValue("c"));
 				conf.setBoolean("map.input.sampling.error", true);
 			}
-			if(cmdline.hasOption("f")){
-				
+			if(cmdline.hasOption("p")){
+				conf.setBoolean("mapred.job.precise", true);
+				isPrecise = true;
+			}
+			if(cmdline.hasOption("m")){
+				conf.setLong("mapreduce.input.fileinputformat.split.maxsize", Long.parseLong(cmdline.getOptionValue("m")));
+			}
+
+			if(isPrecise){
+				Job job = new Job(conf, "total of UserVisitAdRevenue");
+				job.setJarByClass(UserVisitAdRevenue.class);
+				//job.setNumReduceTasks(numReducer);
+				job.setMapperClass(UserVisitAdRevenueMapper.class);
+				job.setReducerClass(UserVisitAdRevenueReducer.class);
+
+				job.setMapOutputKeyClass(Text.class);
+				job.setMapOutputValueClass(DoubleWritable.class);
+				job.setOutputKeyClass(Text.class);
+				job.setOutputValueClass(DoubleWritable.class);
+
+				job.setPartitionerClass(HashPartitioner.class);
+
+				job.setInputFormatClass(TextInputFormat.class);
+
+				FileInputFormat.setInputPaths(job,   new Path(input));
+				FileOutputFormat.setOutputPath(job, new Path(output));
+				job.waitForCompletion(true);
+				return;
 			}
 
 			//cmdline.getOptionValue

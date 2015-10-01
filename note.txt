@@ -169,3 +169,12 @@ issue event
 ['payload']['issue']['comments']
 
 33GB, 11:46:43----11:49:55
+
+precise 228s
+15/09/30 21:15:09 INFO mapred.JobClient:     Map output records=6841398
+2015-09-30 21:11:21
+
+
+approximate 20s
+15/09/30 21:50:49 INFO input.FileInputFormat: Total input paths to process : 1
+15/09/30 21:51:09 INFO mapred.JobClient:     Map output records=154497

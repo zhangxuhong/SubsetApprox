@@ -127,7 +127,7 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
     if (maxSplitSize != 0) {
       maxSize = maxSplitSize;
     } else {
-      maxSize = conf.getLong("mapreduce.input.fileinputformat.split.maxsize", 0);
+      maxSize = conf.getLong("mapreduce.input.fileinputformat.split.maxsize", 67108864);
     }
     if (minSizeNode != 0 && maxSize != 0 && minSizeNode > maxSize) {
       throw new IOException("Minimum split size pernode " + minSizeNode +
