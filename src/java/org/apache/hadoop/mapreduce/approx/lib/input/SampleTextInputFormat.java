@@ -67,6 +67,7 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
   private long maxSplitSize = 0;
   private long minSplitSizeNode = 0;
   private long minSplitSizeRack = 0;
+  private boolean blockunit = false;
   // mapping from a rack name to the set of Nodes in the rack 
   private HashMap<String, Set<String>> rackToNodes = 
                             new HashMap<String, Set<String>>();
@@ -111,6 +112,7 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
     long minSizeRack = 0;
     long maxSize = 0;
     Configuration conf = job.getConfiguration();
+    blockunit = conf.getBoolean("map.input.block.unit", false);
 
     // the values specified by setxxxSplitSize() takes precedence over the
     // values that might have been specified in the config
@@ -127,7 +129,7 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
     if (maxSplitSize != 0) {
       maxSize = maxSplitSize;
     } else {
-      maxSize = conf.getLong("mapreduce.input.fileinputformat.split.maxsize", 67108864);
+      maxSize = conf.getLong("mapreduce.input.fileinputformat.split.maxsize", 0);
     }
     if (minSizeNode != 0 && maxSize != 0 && minSizeNode > maxSize) {
       throw new IOException("Minimum split size pernode " + minSizeNode +
@@ -237,7 +239,12 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
           blockToNodes.remove(oneblock);
           //*******************************************segments compose splits****************
           curSplitSize += oneblock.length;
-
+          if(blockunit){
+            addCreatedSplit1(splits, validBlocks);
+            curSplitSize = 0;
+            validBlocks.clear();
+            continue;
+          }
           // if the accumulated split size exceeds the maximum, then 
           // create this split.
           if (maxSize != 0 && curSplitSize >= maxSize) {
@@ -374,6 +381,27 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
    * Create a single split from the list of blocks specified in validBlocks
    * Add this new split into splitList.
    */
+
+  private void addCreatedSplit1(List<InputSplit> splitList,  
+                               ArrayList<OneBlockInfo> validBlocks){
+    OneBlockInfo oneblockinfo = validBlocks.get(0);
+    SampleFileSplit thissplit = new SampleFileSplit(oneblockinfo.onepath, oneblockinfo.segOffset, 
+                                   oneblockinfo.segLength, 
+                                   oneblockinfo.segKeys, 
+                                   oneblockinfo.segWeights,
+                                   oneblockinfo.hosts);
+    splitList.add(thissplit); 
+    int index = splitList.size()-1;
+    for(int i = 0; i < offset.length; i++){
+      LOG.info("split:"+ String.valueOf(index) + " segment:" 
+        + String.valueOf(i) + " offset:" + String.valueOf(offset[i]) 
+        + " length:" + String.valueOf(length[i])
+        + " key:" + key[i]);
+    }
+  }
+
+
+
   private void addCreatedSplit(List<InputSplit> splitList, 
                                Collection<String> locations, 
                                ArrayList<OneBlockInfo> validBlocks) {

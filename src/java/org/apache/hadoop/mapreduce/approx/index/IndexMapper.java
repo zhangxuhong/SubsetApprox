@@ -57,6 +57,28 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 		preHistogram = null;
 	}
 	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+		
+
+		if(segSize == 0){
+			String[] fields = (value.toString()).split(Pattern.quote(delimiter));
+			//LOG.info("size:"+fields.length);
+			//int[] index = new int[indexFields.length];
+			for(int i = 0; i < indexFields.length; i++){
+				int index = Integer.parseInt(indexFields[i]);
+				String keyword = fields[index];
+				//LOG.info("keyword:" + keyword);
+				Long preValue = histogram.get(i).get(keyword);
+				if(preValue != null){
+					histogram.get(i).put(keyword, preValue + 1);
+				}
+				else{
+					histogram.get(i).put(keyword, new Long(1));
+				}
+			}
+			recordCount++;
+			return;
+		}
+
 		if(recordCount == segSize){
 			if(preHistogram != null){
 				//emit histogram for last segment;
@@ -82,6 +104,8 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 		if(recordCount == 0){
 			segPosition = key.get();
 		}
+
+		//************************************************************************************
 		String[] fields = (value.toString()).split(Pattern.quote(delimiter));
 		//LOG.info("size:"+fields.length);
 		//int[] index = new int[indexFields.length];
@@ -97,6 +121,8 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 				histogram.get(i).put(keyword, new Long(1));
 			}
 		}
+
+		//*****************************************************************
 		recordCount++;
 		
 
@@ -107,6 +133,18 @@ public class IndexMapper extends Mapper<LongWritable, Text, Text, Text>{
 		try {
 		  while (context.nextKeyValue()) {
 		    map(context.getCurrentKey(), context.getCurrentValue(), context);
+		  }
+		  if(segSize == 0){
+		  	FileSplit split = (FileSplit)context.getInputSplit();
+		  	for(int i = 0; i < histogram.size(); i++){
+		  		Set<Entry<String, Long>> entries =  histogram.get(i).entrySet();
+		  		for(Entry<String, Long> ent : entries){
+		  			context.write(new Text(ent.getKey()  + "++" + String.valueOf(preSegPosition) + "--" + String.valueOf(i)), 
+						new Text(String.format("%d,%d,%d,%d", 
+							split.getStart(), split.getLength(), recordCount, ent.getValue().longValue())));
+		  		}
+		  	}
+		  	recordCount = 0;
 		  }
 		  if(recordCount != 0){
 		  	for(int i = 0; i < histogram.size(); i++){
