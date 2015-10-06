@@ -31,7 +31,7 @@ public class SegmentsMap {
 
   private static final Logger LOG = Logger.getLogger("Subset.Segmap");
 
-  private Configuration conf;
+  private static Configuration conf;
   private Path path;
   private static String FILE_PARENT="/index/table"; // e.g. "hdfs://brick0:54310/metis";
   private static String FILE_PREFIX="part-r-0000";
@@ -84,6 +84,11 @@ public class SegmentsMap {
 
     public int getKeyWeight(String key){
       //return (double)frequency[0]/rows;
+
+      if(conf.getBoolean("map.input.sampling.equal", false)){
+        return 100;
+      }
+
       String[] fields = key.split(Pattern.quote("+*+"));
       double w = 1;
       for(String field : fields){
