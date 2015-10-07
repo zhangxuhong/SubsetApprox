@@ -63,6 +63,47 @@ public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 		preHistogram = null;
 	}
 	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+		
+		if(segSize == 0){
+			String keyword = "";
+			try{
+				JSONObject line = (JSONObject)parser.parse(value.toString());
+				for(int i = 0; i < indexFields.length; i++){
+					int index = Integer.parseInt(indexFields[i]);
+					keyword = "";
+					if(index == 0)//date
+					{	if(line.containsKey("type")){
+							keyword = (String)line.get("type");
+						}
+						
+					}else if (index == 1) {
+						if(line.containsKey("")){
+							keyword = (String)line.get("");
+						}
+						
+					}else {
+						if(line.containsKey("")){
+							keyword = (String)line.get("");
+						}
+						
+					}
+					//LOG.info("keyword:" + keyword);
+					Long preValue = histogram.get(i).get(keyword);
+					if(preValue != null){
+						histogram.get(i).put(keyword, preValue + 1);
+					}
+					else{
+						histogram.get(i).put(keyword, new Long(1));
+					}
+				}
+			} catch (ParseException e){
+				e.printStackTrace();
+			}
+			recordCount++;
+			return;
+		}
+
+
 		if(recordCount == segSize){
 			if(preHistogram != null){
 				//emit histogram for last segment;
@@ -136,6 +177,18 @@ public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 		try {
 		  while (context.nextKeyValue()) {
 		    map(context.getCurrentKey(), context.getCurrentValue(), context);
+		  }
+		  if(segSize == 0){
+		  	FileSplit split = (FileSplit)context.getInputSplit();
+		  	for(int i = 0; i < histogram.size(); i++){
+		  		Set<Entry<String, Long>> entries =  histogram.get(i).entrySet();
+		  		for(Entry<String, Long> ent : entries){
+		  			context.write(new Text(ent.getKey()  + "++" + String.valueOf(preSegPosition) + "--" + String.valueOf(i)), 
+						new Text(String.format("%d,%d,%d,%d", 
+							split.getStart(), split.getLength(), recordCount, ent.getValue().longValue())));
+		  		}
+		  	}
+		  	recordCount = 0;
 		  }
 		  if(recordCount != 0){
 		  	for(int i = 0; i < histogram.size(); i++){

@@ -141,7 +141,9 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 
 		public void saveCurrentResult() throws IOException,InterruptedException {
 			// key need to be consistent with segmap
-			estimateSampleSize();
+			if(approxConf.getBoolean("mapred.sample.deff", false)){
+				estimateSampleSize();
+			}
 			if(approxConf.getBoolean("map.input.sample.pilot", false)){
 				context.getCounter("sampleSize", prevKey).setValue(estimateSampleSize());
 			}
@@ -250,7 +252,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		} else {
 			// We wrap the context to capture the writing of the keys
 			ClusteringContext clusteringContext = getClusteringContext(context);
-			if(approxConf.getBoolean("map.input.sample.pilot", true)){
+			if(approxConf.getBoolean("map.input.sample.pilot", false) || approxConf.getBoolean("mapred.sample.deff", false)){
 				while (context.nextKey()) {
 					KEYIN key = context.getCurrentKey();
 					// handle duplicated segments

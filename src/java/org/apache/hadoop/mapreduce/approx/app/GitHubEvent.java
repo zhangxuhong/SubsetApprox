@@ -102,6 +102,10 @@ public class GitHubEvent {
 		options.addOption("s", "size", true, "sampling size");
 		options.addOption("p", "precise", false, "disable approximation");
 		options.addOption("m", "max", true, "max split size");
+		options.addOption("b", "block", false, "block unit");
+		options.addOption("q", "equal", false, "equal probability");
+		options.addOption("x", "equalsize", true, "seg size for equal probability");
+		options.addOption("d", "deff",false,"enable deff estimate");
 
 		try {
 			CommandLine cmdline = new GnuParser().parse(options, otherArgs);
@@ -112,6 +116,18 @@ public class GitHubEvent {
 			boolean isPrecise = false;
 			if (input == null || output == null) {
 				throw new org.apache.commons.cli.ParseException("No input/output option");
+			}
+			if(cmdline.hasOption("d")){
+				conf.setBoolean("mapred.sample.deff", true);
+			}
+			if(cmdline.hasOption("x")){
+				conf.setLong("map.input.sampling.equal.size", Long.parseLong(cmdline.getOptionValue("x")));
+			}
+			if(cmdline.hasOption("b")){
+				conf.setBoolean("map.input.block.unit", true);
+			}
+			if(cmdline.hasOption("q")){
+				conf.setBoolean("map.input.sampling.equal", true);
 			}
 			if(cmdline.hasOption("t")) {
 				conf.set("map.input.table.name", cmdline.getOptionValue("t"));

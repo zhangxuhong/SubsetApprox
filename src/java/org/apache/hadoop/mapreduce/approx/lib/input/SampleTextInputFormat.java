@@ -392,11 +392,11 @@ public abstract class SampleTextInputFormat<K, V> extends FileInputFormat<K, V>{
                                    oneblockinfo.hosts);
     splitList.add(thissplit); 
     int index = splitList.size()-1;
-    for(int i = 0; i < offset.length; i++){
+    for(int i = 0; i < oneblockinfo.segOffset.length; i++){
       LOG.info("split:"+ String.valueOf(index) + " segment:" 
-        + String.valueOf(i) + " offset:" + String.valueOf(offset[i]) 
-        + " length:" + String.valueOf(length[i])
-        + " key:" + key[i]);
+        + String.valueOf(i) + " offset:" + String.valueOf(oneblockinfo.segOffset[i]) 
+        + " length:" + String.valueOf(oneblockinfo.segLength[i])
+        + " key:" + oneblockinfo.segKeys[i]);
     }
   }
 

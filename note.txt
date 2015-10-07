@@ -131,7 +131,7 @@ efficient online
 
 clusterID = ((NewTrackingRecordReader)reader).getRecordReader();
 
-ssh -N -f -L 54444:compute-0-0:50030 xzhang@cass.eecs.ucf.edu
+ssh -N -f -L 54444:compute-0-0:8080 xzhang@cass.eecs.ucf.edu
 
 
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -s 100000 -w 0=PushEvent -t github -i /2015-01.json -o /github
