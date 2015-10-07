@@ -77,8 +77,11 @@ public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 						}
 						
 					}else if (index == 1) {
-						if(line.containsKey("")){
-							keyword = (String)line.get("");
+						if(line.containsKey("org")){
+							keyword = "true";
+						}
+						else{
+							keyword = "false";
 						}
 						
 					}else {
@@ -145,14 +148,28 @@ public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 					}
 					
 				}else if (index == 1) {
-					if(line.containsKey("")){
-						keyword = (String)line.get("");
+					if(line.containsKey("org")){
+							keyword = "true";
+						}
+					else{
+						continue;
 					}
 					
 				}else {
-					if(line.containsKey("")){
-						keyword = (String)line.get("");
+					String type = "";
+					if(line.containsKey("type")){
+						type = (String)line.get("type");
+						if(type.equals("IssueCommentEvent")){
+							JSONObject issueCommentEvent = (JSONObject)line.get("payload");
+							JSONObject issue =  (JSONObject)issueCommentEvent.get("issue");
+							keyword = (String)issue.get("created_at");
+							keyword = keyword.substring(0,9);
+						}else
+						{
+							continue;
+						}
 					}
+					
 					
 				}
 				//LOG.info("keyword:" + keyword);

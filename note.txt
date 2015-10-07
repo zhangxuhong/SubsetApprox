@@ -138,14 +138,21 @@ hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.
 
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.index.IndexUserVisit -s 10000 -f 2-4-5 -t uservisit -i /test/uservist.test
 
-hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.index.IndexGitHub -s 10000 -f 0 -t github -i /2015-01.json
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.index.IndexGitHub -s 10000 -f 1 -t githuborg -i /2015-01.json
 
 github
 
 
 def printType1(file):
 	a = json.loads(file.readline())
+	print(a['created_at'])
+	return a
+
+def printType3(file):
+	a = json.loads(file.readline())
 	print(a['type'])
+	if str(a['type']) =="IssueCommentEvent":
+		print(a['payload']['issue']['created_at'])
 	return a
 
 
@@ -178,3 +185,15 @@ precise 228s
 approximate 20s
 15/09/30 21:50:49 INFO input.FileInputFormat: Total input paths to process : 1
 15/09/30 21:51:09 INFO mapred.JobClient:     Map output records=154497
+
+
+github
+
+repository id
+issuecomments  issue date
+type
+org
+
+1000, 10000, 100000
+
+amazon
