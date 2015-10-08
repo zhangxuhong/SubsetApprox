@@ -74,6 +74,8 @@ public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 					if(index == 0)//date
 					{	if(line.containsKey("type")){
 							keyword = (String)line.get("type");
+						}else{
+							continue;
 						}
 						
 					}else if (index == 1) {
@@ -81,14 +83,32 @@ public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 							keyword = "true";
 						}
 						else{
-							keyword = "false";
+							continue;
 						}
 						
+					}else if (index == 2){
+						if(line.containsKey("repo")){
+							JSONObject repo = (JSONObject)line.get("repo");
+							keyword = (String)repo.get("id").toString();
+						}
+						else{
+							continue;
+						}
+
 					}else {
-						if(line.containsKey("")){
-							keyword = (String)line.get("");
-						}
-						
+						String type = "";
+						if(line.containsKey("type")){
+							type = (String)line.get("type");
+							if(type.equals("IssueCommentEvent")){
+								JSONObject issueCommentEvent = (JSONObject)line.get("payload");
+								JSONObject issue =  (JSONObject)issueCommentEvent.get("issue");
+								keyword = (String)issue.get("created_at");
+								keyword = keyword.substring(0,9);
+							}else
+							{
+								continue;
+							}
+						}	
 					}
 					//LOG.info("keyword:" + keyword);
 					Long preValue = histogram.get(i).get(keyword);
@@ -145,16 +165,27 @@ public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 				if(index == 0)//date
 				{	if(line.containsKey("type")){
 						keyword = (String)line.get("type");
+					}else{
+						continue;
 					}
 					
 				}else if (index == 1) {
 					if(line.containsKey("org")){
-							keyword = "true";
-						}
+						keyword = "true";
+					}
 					else{
 						continue;
 					}
 					
+				}else if (index == 2){
+					if(line.containsKey("repo")){
+						JSONObject repo = (JSONObject)line.get("repo");
+						keyword = repo.get("id").toString();
+					}
+					else{
+						continue;
+					}
+
 				}else {
 					String type = "";
 					if(line.containsKey("type")){
@@ -168,9 +199,7 @@ public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 						{
 							continue;
 						}
-					}
-					
-					
+					}	
 				}
 				//LOG.info("keyword:" + keyword);
 				Long preValue = histogram.get(i).get(keyword);

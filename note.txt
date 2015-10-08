@@ -187,9 +187,14 @@ approximate 20s
 15/09/30 21:51:09 INFO mapred.JobClient:     Map output records=154497
 
 
+
+************************
+small data
+**********************
+
 github
 
-repository id
+repository id (storage cost experiment)
 issuecomments  issue date
 type
 org
@@ -197,3 +202,6 @@ org
 1000, 10000, 100000
 
 amazon
+reviewTime
+categories
+brand
