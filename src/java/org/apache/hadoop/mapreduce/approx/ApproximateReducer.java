@@ -81,7 +81,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	protected double error;
 
 	//protected double total;
-	//protected double variance;
+	protected double variance;
 	//protected double s2;
 	protected long totalSize = 0;
 	protected boolean isWeight;
@@ -93,6 +93,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	protected double weightedSize;
 	protected double deff_p;
 	protected double deff_c;
+	protected double srsvaricne;
 	/**
 	 * Initialize all the variables needed for multistage sampling.
 	 */
@@ -144,17 +145,23 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 
 		public void saveCurrentResult() throws IOException,InterruptedException {
 			// key need to be consistent with segmap
+			double[] result = estimateCurrentResult();
 			if(approxConf.getBoolean("mapred.sample.deff", false)){
 				estimateSampleSize();
 			}
 			if(approxConf.getBoolean("map.input.sample.pilot", false)){
+				
 				context.getCounter("sampleSize", prevKey).setValue(estimateSampleSize());
 			}
 			//else{
-				double[] result = estimateCurrentResult();
+				
 				double tauhat   = result[0];
 				double interval = result[1];
 				context.write((KEYOUT) new Text(prevKey), (VALUEOUT) new ApproximateDoubleWritable(tauhat, interval));
+			wi.clear();
+			ti.clear();
+			mi.clear();
+			sw.clear();
 			//}
 		}
 		
@@ -270,7 +277,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 					KEYIN key = context.getCurrentKey();
 					// handle duplicated segments
 					//LOG.info(key.toString());
-					 reduce(key, context.getValues(), clusteringContext);	
+					 defaultReduce(key, context.getValues(), clusteringContext);	
 				}
 			}
 
@@ -333,7 +340,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		// Estimate the result
 		String app = approxConf.get("mapred.sampling.app", "total");
 		double s2 = 0.0;
-		double variance = 0.0;
+		variance = 0.0;
 		if(app.equals("total")){
 			double total;
 			double sum = 0.0;
@@ -349,12 +356,11 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 				sum += Math.pow(ti.get(i).doubleValue()/wi.get(i).doubleValue() - total, 2);
 			}
 			s2 = sum/(ti.size()-1);
-			variance = Math.sqrt(s2/ti.size());
+			variance = s2/ti.size();
+			double std = Math.sqrt(variance);
 			LOG.info("var:" + String.valueOf(variance));
-			wi.clear();
-			ti.clear();
-			mi.clear();
-			return new double[] {total, tscore*variance};
+			LOG.info("error:" + String.valueOf(tscore*std));
+			return new double[] {total, tscore*std};
 		}else{
 			double sum = 0.0;
 			for (int i = 0; i < ti.size(); i++ ) {
@@ -369,17 +375,19 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			}
 			population = population/mi.size();
 			double avg = sum/population;
+			LOG.info("avg:" + String.valueOf(avg));
 			sum = 0.0;
 			for (int i = 0; i < ti.size(); i++ ) {
 				sum += Math.pow((ti.get(i).doubleValue() - avg * mi.get(i).longValue())/wi.get(i).doubleValue(), 2);
 			}
 			s2 = sum/Math.pow(population,2);
 			s2 = s2 /(ti.size() -1);
-			variance = Math.sqrt(s2/ti.size());
-			wi.clear();
-			ti.clear();
-			mi.clear();
-			return new double[] {avg, tscore*variance};
+			variance = s2/ti.size();
+			double std = Math.sqrt(variance);
+			LOG.info("var:" + String.valueOf(variance));
+			
+			LOG.info("error:" + String.valueOf(tscore*std));
+			return new double[] {avg, tscore*std};
 		}
 	}
 
@@ -390,10 +398,10 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		double wi_sum = 0.0;
 		for(int i = 0; i < clusterSize; i++){
 			y_mean += ti.get(i).doubleValue();
-			wi_sum += wi.get(i).doubleValue();
-			deff_p += Math.pow(wi.get(i).doubleValue(), 2);
+			wi_sum += (1/wi.get(i).doubleValue())*mi.get(i).longValue();
+			deff_p += Math.pow(1/wi.get(i).doubleValue(), 2)*mi.get(i).longValue();
 		}
-		deff_p = deff_p / Math.pow(wi_sum, 2);
+		deff_p = (totalSize * deff_p) / Math.pow(wi_sum, 2);
 		LOG.info("deff_p:" + String.valueOf(deff_p));
 		LOG.info("totalSize:" + String.valueOf(totalSize));
 		y_mean = y_mean / totalSize;
@@ -427,13 +435,20 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 
 		long srs = estimateSRS();
 		LOG.info("srs:" + String.valueOf(srs));
-		sw.clear();
+		
 		//yi_mean.clear()
 		double deff = deff_p * deff_c;
 		LOG.info("deff:" + String.valueOf(deff));
 		long desiredSize = (long)Math.ceil(deff * srs);
 		LOG.info("size:" + String.valueOf(desiredSize));
-		return desiredSize;
+		long desiredSize2 = (long)Math.ceil((variance/srsvaricne) * srs);
+		LOG.info("size2:" + String.valueOf(desiredSize2));
+		if(desiredSize < desiredSize2){
+			return desiredSize;
+		}else{
+			return desiredSize2;
+		}
+		
 	}
 
 	private long estimateSRS(){
@@ -446,9 +461,14 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			}
 			population = population/mi.size();
 			double srsTotalvar = (sst/(totalSize-1))*Math.pow(population,2);
+			srsvaricne = srsTotalvar/totalSize;
+			LOG.info("srs variance:" + String.valueOf(srsTotalvar/totalSize));
 			srs = (long)Math.ceil((srsTotalvar * Math.pow(tscore, 2)) / Math.pow(error, 2));
 		}else{
-			srs = (long)Math.ceil((sst/(totalSize-1) * Math.pow(tscore, 2)) / Math.pow(error, 2));
+			double srsTotalvar = sst/(totalSize-1);
+			srs = (long)Math.ceil((srsTotalvar * Math.pow(tscore, 2)) / Math.pow(error, 2));
+			srsvaricne = srsTotalvar/totalSize;
+			LOG.info("srs variance:" + String.valueOf(srsTotalvar/totalSize));
 		}
 		return srs;
 	}

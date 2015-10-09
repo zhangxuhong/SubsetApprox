@@ -94,6 +94,7 @@ public class UserVisitAdRevenue {
 		options.addOption("q", "equal", false, "equal probability");
 		options.addOption("x", "equalsize", true, "seg size for equal probability");
 		options.addOption("d", "deff",false,"enable deff estimate");
+		options.addOption("a", "app", true, "average or sum");
 
 		try {
 			CommandLine cmdline = new GnuParser().parse(options, otherArgs);
@@ -105,6 +106,9 @@ public class UserVisitAdRevenue {
 			//long maxsize = 67108864;
 			if (input == null || output == null) {
 				throw new ParseException("No input/output option");
+			}
+			if(cmdline.hasOption("a")){
+				conf.set("mapred.sampling.app", cmdline.getOptionValue("a"));
 			}
 			if(cmdline.hasOption("d")){
 				conf.setBoolean("mapred.sample.deff", true);

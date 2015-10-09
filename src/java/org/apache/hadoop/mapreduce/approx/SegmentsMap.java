@@ -92,7 +92,11 @@ public class SegmentsMap {
       String[] fields = key.split(Pattern.quote("+*+"));
       double w = 1;
       for(String field : fields){
-        w = w * (histogram.get(field) / (double)rows);
+        if(histogram.containsKey(field)){
+          w = w * (histogram.get(field) / (double)rows);
+        }else{
+          return 0;
+        }
       }
 
       return (int)Math.round(rows * w);

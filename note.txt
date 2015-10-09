@@ -140,6 +140,17 @@ hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.inde
 
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.index.IndexGitHub -s 10000 -f 1 -t githuborg -i /2015-01.json
 
+
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -d -a avg -s 100000 -w payload.issue.created_at=2015-01-0 -t github10k -i /2015-01.json -o /github/tmp
+
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -d -a total -s 200000 -w type=IssueCommentEvent,org=true -t github10k -i /2015-01.json -o /github/tmp
+
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -a avg -p -i /2015-01.json -o /github/tmp
+
+
+
+
+
 github
 
 
