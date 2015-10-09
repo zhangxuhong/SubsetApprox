@@ -80,9 +80,9 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	protected double confidence;
 	protected double error;
 
-	protected double total;
-	protected double variance;
-	protected double s2;
+	//protected double total;
+	//protected double variance;
+	//protected double s2;
 	protected long totalSize = 0;
 	protected boolean isWeight;
 	
@@ -114,6 +114,9 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			isWeight = false;
 			error = Double.parseDouble(approxConf.get("mapred.job.error", "1.0"));
 			confidence = Double.parseDouble(approxConf.get("mapred.job.confidence", "-1.0"));
+			if(confidence > 0){
+				tscore = getTScore(totalSize-1, confidence);
+			}
 		}
 	}
 	
@@ -328,26 +331,56 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	
 	protected double[] estimateCurrentResult(boolean reset) {
 		// Estimate the result
-
-		double sum = 0.0;
-		s2 = 0.0;
-		for (int i = 0; i < ti.size(); i++ ) {
-			sum += ti.get(i).doubleValue()/wi.get(i).doubleValue();
-			LOG.info("ti:" + String.valueOf(ti.get(i).doubleValue()));
-			LOG.info("wi:" + String.valueOf(wi.get(i).doubleValue()));
+		String app = approxConf.get("mapred.sampling.app", "total");
+		double s2 = 0.0;
+		double variance = 0.0;
+		if(app.equals("total")){
+			double total;
+			double sum = 0.0;
+			for (int i = 0; i < ti.size(); i++ ) {
+				sum += ti.get(i).doubleValue()/wi.get(i).doubleValue();
+				LOG.info("ti:" + String.valueOf(ti.get(i).doubleValue()));
+				LOG.info("wi:" + String.valueOf(wi.get(i).doubleValue()));
+			}
+			total = sum/ti.size();
+			LOG.info("total:" + String.valueOf(total));
+			sum = 0.0;
+			for (int i = 0; i < ti.size(); i++ ) {
+				sum += Math.pow(ti.get(i).doubleValue()/wi.get(i).doubleValue() - total, 2);
+			}
+			s2 = sum/(ti.size()-1);
+			variance = Math.sqrt(s2/ti.size());
+			LOG.info("var:" + String.valueOf(variance));
+			wi.clear();
+			ti.clear();
+			mi.clear();
+			return new double[] {total, tscore*variance};
+		}else{
+			double sum = 0.0;
+			for (int i = 0; i < ti.size(); i++ ) {
+				sum += ti.get(i).doubleValue()/wi.get(i).doubleValue();
+				LOG.info("ti:" + String.valueOf(ti.get(i).doubleValue()));
+				LOG.info("wi:" + String.valueOf(wi.get(i).doubleValue()));
+			}
+			sum = sum/ti.size();
+			double population = 0.0;
+			for(int i = 0; i < mi.size(); i++){
+				population += mi.get(i).longValue()/wi.get(i).doubleValue();
+			}
+			population = population/mi.size();
+			double avg = sum/population;
+			sum = 0.0;
+			for (int i = 0; i < ti.size(); i++ ) {
+				sum += Math.pow((ti.get(i).doubleValue() - avg * mi.get(i).longValue())/wi.get(i).doubleValue(), 2);
+			}
+			s2 = sum/Math.pow(population,2);
+			s2 = s2 /(ti.size() -1);
+			variance = Math.sqrt(s2/ti.size());
+			wi.clear();
+			ti.clear();
+			mi.clear();
+			return new double[] {avg, tscore*variance};
 		}
-		total = sum/ti.size();
-		LOG.info("total:" + String.valueOf(total));
-		sum = 0.0;
-		for (int i = 0; i < ti.size(); i++ ) {
-			sum += Math.pow(ti.get(i).doubleValue()/wi.get(i).doubleValue() - total, 2);
-		}
-		s2 = sum/(ti.size()-1);
-		variance = Math.sqrt(s2/ti.size());
-		LOG.info("var:" + String.valueOf(variance));
-		wi.clear();
-		ti.clear();
-		return new double[] {total, tscore*variance};
 	}
 
 	private long estimateSampleSize(){
@@ -391,12 +424,9 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		LOG.info("deff_c:" + String.valueOf(deff_c));
 
 		//calculate size 
-		if(confidence > 0){
-			tscore = getTScore(totalSize-1, confidence);
-		}
-		long srs = (long)Math.ceil((sst/(totalSize-1) * Math.pow(tscore, 2)) / Math.pow(error, 2));
+
+		long srs = estimateSRS();
 		LOG.info("srs:" + String.valueOf(srs));
-		mi.clear();
 		sw.clear();
 		//yi_mean.clear()
 		double deff = deff_p * deff_c;
@@ -406,6 +436,22 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		return desiredSize;
 	}
 
+	private long estimateSRS(){
+		String app = approxConf.get("mapred.sampling.app", "total");
+		long srs = 0;
+		if(app.equals("total")){
+			double population = 0.0;
+			for(int i = 0; i < mi.size(); i++){
+				population += mi.get(i).longValue()/wi.get(i).doubleValue();
+			}
+			population = population/mi.size();
+			double srsTotalvar = (sst/(totalSize-1))*Math.pow(population,2);
+			srs = (long)Math.ceil((srsTotalvar * Math.pow(tscore, 2)) / Math.pow(error, 2));
+		}else{
+			srs = (long)Math.ceil((sst/(totalSize-1) * Math.pow(tscore, 2)) / Math.pow(error, 2));
+		}
+		return srs;
+	}
 	private void calculateClusterSw(double mean, ArrayList<VALUEIN> values) {
 		//yi_mean.add(mean);
 		double sum = 0.0;
@@ -458,6 +504,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			sum += val;
 		}
 		context.write((KEYOUT) key, (VALUEOUT) new DoubleWritable(sum));
+
 		if(!isWeight){
 			totalSize += numRecords;
 			LOG.info("totalSize+:" + String.valueOf(totalSize));
@@ -471,6 +518,52 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			LOG.info("totalSize-:" + String.valueOf(totalSize));
 			mi.add(mi.get(mi.size()-1));
 		}
+  	}
+
+  	protected void defaultReduce(KEYIN key, Iterable<VALUEIN> values, Context context
+                        ) throws IOException, InterruptedException {
+  		String app = approxConf.get("mapred.sampling.app", "total");
+  		double sum = 0.0;
+  		if(app.equals("total")){
+	  		for(VALUEIN value: values){
+				double val = 0.0;
+				if (value instanceof LongWritable) {
+					val = (double)(((LongWritable) value).get());
+				} else if (value instanceof IntWritable) {
+					val = (double)(((IntWritable) value).get());
+				} else if (value instanceof DoubleWritable) {
+					val = (double)(((DoubleWritable) value).get());
+				} else if (value instanceof FloatWritable) {
+					val = (double)(((FloatWritable) value).get());
+				}
+				sum += val;
+			}
+			context.write((KEYOUT) key, (VALUEOUT) new DoubleWritable(sum));
+  		}else {
+  			long numRecords = 0;
+			for(VALUEIN value: values){
+				double val = 0.0;
+				if (value instanceof LongWritable) {
+					val = (double)(((LongWritable) value).get());
+				} else if (value instanceof IntWritable) {
+					val = (double)(((IntWritable) value).get());
+				} else if (value instanceof DoubleWritable) {
+					val = (double)(((DoubleWritable) value).get());
+				} else if (value instanceof FloatWritable) {
+					val = (double)(((FloatWritable) value).get());
+				}
+				numRecords++;
+				sum += val;
+			}
+			context.write((KEYOUT) key, (VALUEOUT) new DoubleWritable(sum));
+
+			if(!isWeight){
+				mi.add(numRecords);  
+			}
+			if(ti.size() == mi.size() + 1){
+				mi.add(mi.get(mi.size()-1));
+			}
+  		}
   	}
 	
 }

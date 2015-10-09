@@ -251,7 +251,7 @@ public class SegmentsMap {
     try {
       Hashtable<String, Segment> segTable = new Hashtable<String, Segment>();
       String tableName = conf.get("map.input.table.name", "");
-      String indexfile = this.FILE_PARENT + "/" + tableName + "/" + this.FILE_PREFIX;
+      String indexfile = this.FILE_PARENT + "/" + tableName + "/";
       String filterKey = "";
       for(String wherekey : wherekeys){
         String fieldIndex = wherekey.split(Pattern.quote("="))[0];

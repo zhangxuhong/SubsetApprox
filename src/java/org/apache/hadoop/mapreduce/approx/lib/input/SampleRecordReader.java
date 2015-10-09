@@ -30,6 +30,10 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 import org.apache.hadoop.mapreduce.approx.lib.input.SampleFileSplit;
 /**
  * A generic RecordReader that can hand out different recordReaders
@@ -57,11 +61,15 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
   protected int idx;
   protected long progress;
   protected RecordReader<K, V> curReader;
+  protected String[] whereKeys;
+  protected JSONParser parser;
   
   public void initialize(InputSplit split,
       TaskAttemptContext context) throws IOException, InterruptedException {
     this.split = (SampleFileSplit)split;
     this.context = context;
+    whereKeys = context.getConfiguration().get("map.input.where.clause", null).split(Pattern.quote(","));
+    parser = new JSONParser();
     if (null != this.curReader) {
       this.curReader.initialize(split, context);
     }
@@ -70,17 +78,39 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
 
   public boolean nextKeyValue() throws IOException, InterruptedException {
     while(nextKeyValueOrg()){
-      String currentValue = ((Text)this.getCurrentValue()).toString().toLowerCase();
+      String currentValue = ((Text)this.getCurrentValue()).toString();
+      JSONObject jsonCurrentValue = null;
+      try{
+        jsonCurrentValue = (JSONObject)parser.parse(currentValue);
+      } catch (ParseException e){
+        e.printStackTrace();
+      }
       //LOG.info(currentValue);
       String[] keys = this.split.getKeys(idx-1).split(Pattern.quote("*+*"));
       for(String key : keys){
       	//*************************************************************************fields separator**********************
         String[] fields = key.split(Pattern.quote("+*+"));
         boolean containCurrentKey = true;
-        for(String field : fields){
+
+        for(int i = 0; i < fields.length; i++){
           //LOG.info("filter:" + field);
-          if(!currentValue.contains(field.toLowerCase())){
+          String[] jsonwhere = whereKeys[i].split(Pattern.quote("."));
+          JSONObject jsonkey = jsonCurrentValue;
+          for(int j = 0; j < jsonwhere.length; j++){
+            if(jsonkey.containsKey(jsonwhere[j])){
+              jsonkey = (JSONObject)jsonkey.get(jsonwhere[j]);
+            }else{
+              containCurrentKey = false;
+              break;
+            }
+          }
+          if(!containCurrentKey){
+            break;
+          }
+          String jsonvalue = jsonkey.toString();
+          if(!jsonvalue.toLowerCase().contains(fields[i].toLowerCase())){
             containCurrentKey = false;
+            break;
           }
         }
         if(containCurrentKey){
