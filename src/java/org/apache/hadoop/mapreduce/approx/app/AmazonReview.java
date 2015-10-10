@@ -4,6 +4,8 @@ import java.lang.Exception;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.regex.Pattern;
+import java.util.StringTokenizer;
+import java.util.Set;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -39,32 +41,113 @@ import org.apache.hadoop.mapreduce.approx.lib.input.MySampleTextInputFormat;
 
 import org.apache.log4j.Logger;
 
-public class UserVisitAdRevenue {
+import org.json.simple.JSONObject;
+//import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.*;
+
+public class AmazonReview {
 	/**
 	 * Launch wikipedia page rank.
 	 */
-	public static class UserVisitAdRevenueMapper extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
+	public static class AmazonReviewMapper1 extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
 		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-			String[] line = value.toString().split(Pattern.quote("|"));
-			if(line[14].trim().equals("AIR")){
-				DoubleWritable quantity = new DoubleWritable(Double.parseDouble(line[4].trim()));
-				Text keyword = new Text(line[14]);
-				//LOG.info("App key:" + keyword);
-			// if more than one keyword, concatenate using "+*+" 
-				context.write(keyword, quantity);
+				JSONParser parser = new JSONParser();
+				JSONObject line = null;
+				try{
+					line = (JSONObject)parser.parse(value.toString());
+				} catch (org.json.simple.parser.ParseException e){
+					e.printStackTrace();
+				}
+				String filter = "Books";
+				if(line.containsKey("salesRank")){
+					JSONObject salesRank = (JSONObject)line.get("salesRank");
+					Set<String> keyset = (Set<String>)salesRank.keySet();
+					for(String categ: keyset){
+						if(categ.equals(filter)){
+							DoubleWritable quantity = new DoubleWritable(0.0);
+							if(line.containsKey("reviewText")){
+								String review = (String)line.get("reviewText");
+								StringTokenizer st = new StringTokenizer(review);
+								int size =  st.countTokens();
+								quantity.set((double)size);
+							}
+							context.write(new Text(filter), quantity);
+						}
+					}
 			}
 			
 		}
 	}
-	public static class UserVisitAdRevenueReducer extends ApproximateReducer<Text, DoubleWritable, Text, DoubleWritable> {
+	public static class AmazonReviewMapper extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
+		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
+		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+				JSONParser parser = new JSONParser();
+				JSONObject line = null;
+				try{
+					line = (JSONObject)parser.parse(value.toString());
+				} catch (org.json.simple.parser.ParseException e){
+					e.printStackTrace();
+				}
+				String[] whereKeys = context.getConfiguration().get("map.input.where.clause", null).split(Pattern.quote(","));
+				String filter1 = whereKeys[0].split("=")[1];
+				String filter2 = "";
+				if(whereKeys.length == 2){
+					filter2 = whereKeys[1].split("=")[1];
+				}
+				if(line.containsKey("salesRank")){
+					JSONObject salesRank = (JSONObject)line.get("salesRank");
+					Set<String> keyset = (Set<String>)salesRank.keySet();
+					for(String categ: keyset){
+						if(categ.equals(filter1)){
+							if(filter2.equals("")){
+								DoubleWritable quantity = new DoubleWritable(0.0);
+								if(line.containsKey("reviewText")){
+									String review = (String)line.get("reviewText");
+									StringTokenizer st = new StringTokenizer(review);
+									int size =  st.countTokens();
+									quantity.set((double)size);
+								}
+								context.write(new Text(filter1), quantity);
+
+							}else{
+								if(line.containsKey("reviewTime")){
+									String time = (String)line.get("reviewTime");
+									if(time.contains(filter2)){
+										DoubleWritable quantity = new DoubleWritable(0.0);
+										if(line.containsKey("reviewText")){
+											String review = (String)line.get("reviewText");
+											StringTokenizer st = new StringTokenizer(review);
+											int size =  st.countTokens();
+											quantity.set((double)size);
+										}
+										context.write(new Text(filter2+ "+*+" + filter1), quantity);
+
+									}
+								}
+							}
+						}
+					}
+			}
+			
+		}
+	}
+	public static class AmazonReviewReducer extends ApproximateReducer<Text, DoubleWritable, Text, DoubleWritable> {
 		DoubleWritable result = new DoubleWritable();
+		private static final Logger LOG = Logger.getLogger("Subset.AppReducer");
 		public void reduce(Text key, Iterable<DoubleWritable> values, Context context) throws IOException, InterruptedException {
 			double sum = 0;
+			long count = 0;
 			for(DoubleWritable val : values){
 				sum += val.get();
+				count++;
 			}
-			result.set(sum);
+			if(context.getConfiguration().get("mapred.sampling.app", "total").equals("total")){
+				result.set(sum);
+			}else {
+				result.set(sum/count);
+			}
+			LOG.info("precise result:"+result.toString());
 			context.write(key, result);
 		}
 	}
@@ -156,11 +239,11 @@ public class UserVisitAdRevenue {
 			}
 
 			if(isPrecise){
-				Job job = new Job(conf, "total of UserVisitAdRevenue");
-				job.setJarByClass(UserVisitAdRevenue.class);
+				Job job = new Job(conf, "total of AmazonReview");
+				job.setJarByClass(AmazonReview.class);
 				//job.setNumReduceTasks(numReducer);
-				job.setMapperClass(UserVisitAdRevenueMapper.class);
-				job.setReducerClass(UserVisitAdRevenueReducer.class);
+				job.setMapperClass(AmazonReviewMapper.class);
+				job.setReducerClass(AmazonReviewReducer.class);
 
 				job.setMapOutputKeyClass(Text.class);
 				job.setMapOutputValueClass(DoubleWritable.class);
@@ -183,10 +266,10 @@ public class UserVisitAdRevenue {
 				pilotConf.setLong("map.input.sample.size", 1000);
 				pilotConf.setBoolean("map.input.sample.pilot", true);
 				Job job = new Job(pilotConf, "pilot");
-				job.setJarByClass(UserVisitAdRevenue.class);
+				job.setJarByClass(AmazonReview.class);
 				//job.setNumReduceTasks(numReducer);
-				job.setMapperClass(UserVisitAdRevenueMapper.class);
-				job.setReducerClass(UserVisitAdRevenueReducer.class);
+				job.setMapperClass(AmazonReviewMapper.class);
+				job.setReducerClass(AmazonReviewReducer.class);
 
 				job.setMapOutputKeyClass(Text.class);
 				job.setMapOutputValueClass(LongWritable.class);
@@ -209,11 +292,11 @@ public class UserVisitAdRevenue {
 				}
 			}
 
-			Job job = new Job(conf, "total of UserVisitAdRevenue");
-			job.setJarByClass(UserVisitAdRevenue.class);
+			Job job = new Job(conf, "total of AmazonReview");
+			job.setJarByClass(AmazonReview.class);
 			//job.setNumReduceTasks(numReducer);
-			job.setMapperClass(UserVisitAdRevenueMapper.class);
-			job.setReducerClass(UserVisitAdRevenueReducer.class);
+			job.setMapperClass(AmazonReviewMapper.class);
+			job.setReducerClass(AmazonReviewReducer.class);
 
 			job.setMapOutputKeyClass(Text.class);
 			job.setMapOutputValueClass(DoubleWritable.class);
@@ -232,7 +315,7 @@ public class UserVisitAdRevenue {
 		} catch (ParseException exp){
 			System.err.println("Error parsing command line: " + exp.getMessage());
 			HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp(UserVisitAdRevenue.class.toString(), options);
+			formatter.printHelp(AmazonReview.class.toString(), options);
 			ToolRunner.printGenericCommandUsage(System.out);
 			System.exit(2);
 		}

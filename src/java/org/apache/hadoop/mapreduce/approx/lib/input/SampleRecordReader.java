@@ -97,13 +97,16 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
           String[] jsonwhere = whereKeys[fields.length -1-i].split(Pattern.quote("="))[0].split(Pattern.quote("."));
           JSONObject jsonkey = jsonCurrentValue;
           String jsonvalue = "";
+          boolean flag = true;
           for(int j = 0; j < jsonwhere.length; j++){
+            flag = true;
             if(jsonkey.containsKey(jsonwhere[j])){
               if(fields[i].equals("true")){
                 continue;
               }
-              if(j == jsonwhere.length-1){
+              if(jsonkey.get(jsonwhere[j]).getClass().getName().equals("java.lang.String")){
                 jsonvalue = (String)jsonkey.get(jsonwhere[j]);
+                flag = false;
               }else{
                 jsonkey = (JSONObject)jsonkey.get(jsonwhere[j]);
               }
@@ -117,6 +120,9 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
           }
           if(fields[i].equals("true")){
             continue;
+          }
+          if(flag){
+            jsonvalue = jsonkey.toString();
           }
           if(!jsonvalue.toLowerCase().contains(fields[i].toLowerCase())){
             containCurrentKey = false;
