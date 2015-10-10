@@ -80,7 +80,8 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	protected double confidence;
 	protected double error;
 
-	//protected double total;
+	protected double total;
+	protected double avg;
 	protected double variance;
 	//protected double s2;
 	protected long totalSize = 0;
@@ -113,7 +114,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			//yi_mean = new ArrayList<Double>();
 			sw = new ArrayList<Double>();
 			isWeight = false;
-			error = Double.parseDouble(approxConf.get("mapred.job.error", "1.0"));
+			error = Double.parseDouble(approxConf.get("mapred.job.error", "0.01"));
 			confidence = Double.parseDouble(approxConf.get("mapred.job.confidence", "-1.0"));
 			if(confidence > 0){
 				tscore = getTScore(totalSize-1, confidence);
@@ -342,7 +343,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		double s2 = 0.0;
 		variance = 0.0;
 		if(app.equals("total")){
-			double total;
+			//double total;
 			double sum = 0.0;
 			for (int i = 0; i < ti.size(); i++ ) {
 				sum += ti.get(i).doubleValue()/wi.get(i).doubleValue();
@@ -374,7 +375,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 				population += mi.get(i).longValue()/wi.get(i).doubleValue();
 			}
 			population = population/mi.size();
-			double avg = sum/population;
+			avg = sum/population;
 			LOG.info("avg:" + String.valueOf(avg));
 			sum = 0.0;
 			for (int i = 0; i < ti.size(); i++ ) {
@@ -463,10 +464,10 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			double srsTotalvar = (sst/(totalSize-1))*Math.pow(population,2);
 			srsvaricne = srsTotalvar/totalSize;
 			LOG.info("srs variance:" + String.valueOf(srsTotalvar/totalSize));
-			srs = (long)Math.ceil((srsTotalvar * Math.pow(tscore, 2)) / Math.pow(error, 2));
+			srs = (long)Math.ceil((srsTotalvar * Math.pow(tscore, 2)) / Math.pow(error*total, 2));
 		}else{
 			double srsTotalvar = sst/(totalSize-1);
-			srs = (long)Math.ceil((srsTotalvar * Math.pow(tscore, 2)) / Math.pow(error, 2));
+			srs = (long)Math.ceil((srsTotalvar * Math.pow(tscore, 2)) / Math.pow(error*avg, 2));
 			srsvaricne = srsTotalvar/totalSize;
 			LOG.info("srs variance:" + String.valueOf(srsTotalvar/totalSize));
 		}

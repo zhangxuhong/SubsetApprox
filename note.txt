@@ -146,8 +146,20 @@ hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -d -a total -s 200000 -w type=IssueCommentEvent,org=true -t github10k -i /2015-01.json -o /github/tmp
 
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -a avg -p -i /2015-01.json -o /github/tmp
+**************************amazon precise******
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -a avg -p -i /2015-01.json -o /github/tmp
+***************************amazon approx*******************
+size
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -d -a avg -s 200000 -w salesRank=Books,reviewTime=2000 -t amazon -i /sortybytime -o /amazon/tmp
 
+size with block unit
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -d -b -a avg -s 200000 -w salesRank=Books,reviewTime=2000 -t amazon -i /sortybytime -o /amazon/tmp
 
+ratio
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -d -a avg -r 0.1 -w salesRank=Books,reviewTime=2000 -t amazon -i /sortybytime -o /amazon/tmp
+
+error
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -a avg -e 0.01 -c 0.95 -w salesRank=Books,reviewTime=2000 -t amazon -i /sortybytime -o /amazon/tmp
 
 
 
@@ -214,8 +226,7 @@ org
 
 amazon
 reviewTime
-categories
-brand
+categories: shoes, Music
 
 
 

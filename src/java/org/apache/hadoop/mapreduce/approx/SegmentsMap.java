@@ -208,15 +208,7 @@ public class SegmentsMap {
   private void randomProcess(List<WeightedItem<Segment>> weightedSegs, 
                               List<Segment> sampleSegmentsList, String key, long sampleSize) {
     WeightedRandomSelector selector = new WeightedRandomSelector(weightedSegs);
-    if(conf.getBoolean("map.input.sampling.equal", false)){
-      int numsegs = conf.getInt("map.input.sampling.equal.size", 1);
-      for(int i = 0; i < numsegs; i++){
-        WeightedItem<Segment> candidate = selector.select();
-        double weight = (double)(candidate.getWeight()) / selector.getRangeSize();
-        this.addToSampleSegmentList(candidate.getItem(), sampleSegmentsList, key, weight);
-      }
-      return;
-    }
+
     for(int i = 0; i < sampleSize + 1;){
       WeightedItem<Segment> candidate = selector.select();
       double weight = (double)(candidate.getWeight()) / selector.getRangeSize();
@@ -229,6 +221,15 @@ public class SegmentsMap {
   private void randomProcess(List<WeightedItem<Segment>> weightedSegs, 
                               List<Segment> sampleSegmentsList, String key, double ratio) {
     WeightedRandomSelector selector = new WeightedRandomSelector(weightedSegs);
+    if(conf.getBoolean("map.input.sampling.equal", false)){
+      int numsegs = (int)Math.ceil(weightedSegs.size() * ratio);
+      for(int i = 0; i < numsegs; i++){
+        WeightedItem<Segment> candidate = selector.select();
+        double weight = (double)(candidate.getWeight()) / selector.getRangeSize();
+        this.addToSampleSegmentList(candidate.getItem(), sampleSegmentsList, key, weight);
+      }
+      return;
+    }
     long records = (long)Math.ceil(selector.getRangeSize() * ratio);
     for(int i = 0; i < records + 1;){
       WeightedItem<Segment> candidate = selector.select();

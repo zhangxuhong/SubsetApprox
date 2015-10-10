@@ -79,6 +79,72 @@ public class AmazonReview {
 			
 		}
 	}
+	public static class AmazonReviewMapper2 extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
+		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
+		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+				JSONParser parser = new JSONParser();
+				JSONObject line = null;
+				try{
+					line = (JSONObject)parser.parse(value.toString());
+				} catch (org.json.simple.parser.ParseException e){
+					e.printStackTrace();
+				}
+				//String filter = "Books";
+				if(line.containsKey("salesRank")){
+					JSONObject salesRank = (JSONObject)line.get("salesRank");
+					Set<String> keyset = (Set<String>)salesRank.keySet();
+					for(String categ: keyset){
+						if(categ.equals("Books")){
+							DoubleWritable quantity = new DoubleWritable(0.0);
+							if(line.containsKey("reviewText")){
+								String review = (String)line.get("reviewText");
+								StringTokenizer st = new StringTokenizer(review);
+								int size =  st.countTokens();
+								quantity.set((double)size);
+							}
+							context.write(new Text("Books"), quantity);
+						}else if(categ.equals("Cell Phones & Accessories")){
+							DoubleWritable quantity = new DoubleWritable(0.0);
+							if(line.containsKey("reviewText")){
+								String review = (String)line.get("reviewText");
+								StringTokenizer st = new StringTokenizer(review);
+								int size =  st.countTokens();
+								quantity.set((double)size);
+							}
+							context.write(new Text("Cell Phones & Accessories"), quantity);
+						}else if(categ.equals("Music")){
+							DoubleWritable quantity = new DoubleWritable(0.0);
+							if(line.containsKey("reviewText")){
+								String review = (String)line.get("reviewText");
+								StringTokenizer st = new StringTokenizer(review);
+								int size =  st.countTokens();
+								quantity.set((double)size);
+							}
+							context.write(new Text("Music"), quantity);
+						}else if(categ.equals("Movies & TV")){
+							DoubleWritable quantity = new DoubleWritable(0.0);
+							if(line.containsKey("reviewText")){
+								String review = (String)line.get("reviewText");
+								StringTokenizer st = new StringTokenizer(review);
+								int size =  st.countTokens();
+								quantity.set((double)size);
+							}
+							context.write(new Text("Movies & TV"), quantity);
+						}else if(categ.equals("Clothing")){
+							DoubleWritable quantity = new DoubleWritable(0.0);
+							if(line.containsKey("reviewText")){
+								String review = (String)line.get("reviewText");
+								StringTokenizer st = new StringTokenizer(review);
+								int size =  st.countTokens();
+								quantity.set((double)size);
+							}
+							context.write(new Text("Clothing"), quantity);
+						}
+					}
+			}
+			
+		}
+	}
 	public static class AmazonReviewMapper extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
 		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
