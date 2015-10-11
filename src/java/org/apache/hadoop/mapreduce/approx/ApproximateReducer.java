@@ -163,6 +163,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			ti.clear();
 			mi.clear();
 			sw.clear();
+			totalSize = 0;
 			//}
 		}
 		
@@ -196,7 +197,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 							
 				// if it's weight k,v
 				if (keyStr.charAt(lastIndex+1) == MARK_PARAM && keyStr.length() == lastIndex + 2) {
-					String origKey = new String(aux, 0, aux.length-6);
+					String origKey = new String(aux, 0, aux.length-8);
 					// We changed the key and the previous one wasn't a parameter, write it!
 					if (!origKey.equals(prevKey) && prevKey != null) {
 						saveCurrentResult();
@@ -455,6 +456,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	private long estimateSRS(){
 		String app = approxConf.get("mapred.sampling.app", "total");
 		long srs = 0;
+		srsvaricne = 0.0;
 		if(app.equals("total")){
 			double population = 0.0;
 			for(int i = 0; i < mi.size(); i++){

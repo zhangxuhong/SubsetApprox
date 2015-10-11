@@ -166,7 +166,8 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 			for(int j = 0; j < segKeys.length; j++){
 				//may use string builder
 				//LOG.info(new String(byteId1)+new String(byteId2));
-				context.write((KEYOUT) new Text(segKeys[j] + new String(byteId1) + new String(byteId2) + "-w"), (VALUEOUT) new DoubleWritable(Double.parseDouble(segWeights[j])));
+				byte[] byteId3 = new byte[] {(byte) (j/128), (byte) (j%128)};
+				context.write((KEYOUT) new Text(segKeys[j] + new String(byteId1) + new String(byteId2) + new String(byteId3)+ "-w"), (VALUEOUT) new DoubleWritable(Double.parseDouble(segWeights[j])));
 			}
 		}
 	}

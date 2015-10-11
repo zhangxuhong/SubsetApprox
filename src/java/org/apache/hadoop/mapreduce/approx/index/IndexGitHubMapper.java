@@ -245,7 +245,7 @@ public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 			  			preHistogram.get(i).put(ent.getKey(), value + ent.getValue());
 			  		}
 			  		else{
-			  			preHistogram.get(i).put(ent.getKey(), new Long(1));
+			  			preHistogram.get(i).put(ent.getKey(), ent.getValue());
 			  		}
 			  	}
 			  	Set<Entry<String, Long>> pEntries =  preHistogram.get(i).entrySet();

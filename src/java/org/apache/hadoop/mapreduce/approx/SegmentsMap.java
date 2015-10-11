@@ -213,6 +213,7 @@ public class SegmentsMap {
       WeightedItem<Segment> candidate = selector.select();
       double weight = (double)(candidate.getWeight()) / selector.getRangeSize();
       i += candidate.getWeight();
+      LOG.info("segsize:" + String.valueOf(candidate.getWeight()));
       this.addToSampleSegmentList(candidate.getItem(), sampleSegmentsList, key, weight);
     }
     

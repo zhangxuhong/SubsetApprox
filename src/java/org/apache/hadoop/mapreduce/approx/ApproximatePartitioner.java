@@ -24,7 +24,7 @@ public class ApproximatePartitioner<K,V> extends HashPartitioner<K,V> {
 			int lastIndex = aux.lastIndexOf('-');
 			if (aux.charAt(lastIndex+1) == 'w' && aux.length() == lastIndex + 2) {
 
-				String originalKey = new String(bytes, 0, bytes.length-6);
+				String originalKey = new String(bytes, 0, bytes.length-8);
 				//LOG.info("w:"+ originalKey);
 				return super.getPartition((K) new Text(originalKey), value, numReduceTasks);
 			}
