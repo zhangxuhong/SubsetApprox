@@ -19,6 +19,7 @@ import java.util.Map;
 import java.lang.Math;
 import java.lang.Comparable;
 import java.util.regex.Pattern;
+import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -207,8 +208,18 @@ public class SegmentsMap {
 
   private void randomProcess(List<WeightedItem<Segment>> weightedSegs, 
                               List<Segment> sampleSegmentsList, String key, long sampleSize) {
+    
+    // if(conf.getBoolean("map.input.sampling.equal", false)){
+    //   int totalSegs = conf.getInt("map.input.total.segments", 0);
+    //   Random rnd = new Random();
+    //   for(int i = 0; i < sampleSize + 1;){
+    //     int index = rnd.nextInt(totalSegs);
+    //     if(index < weightedSegs.size()){
+    //       i += weightedSegs.get(index).getWeight();
+    //     }
+    //   }
+    // }
     WeightedRandomSelector selector = new WeightedRandomSelector(weightedSegs);
-
     for(int i = 0; i < sampleSize + 1;){
       WeightedItem<Segment> candidate = selector.select();
       double weight = (double)(candidate.getWeight()) / selector.getRangeSize();
