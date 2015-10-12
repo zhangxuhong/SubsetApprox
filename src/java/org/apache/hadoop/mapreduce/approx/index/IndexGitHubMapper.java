@@ -136,7 +136,7 @@ public class IndexGitHubMapper extends Mapper<LongWritable, Text, Text, Text>{
 					for(Entry<String, Long> ent : entries){
 						context.write(new Text(ent.getKey() + "++" + String.valueOf(preSegPosition) + "--" + String.valueOf(i)), 
 							new Text(String.format("%d,%d,%d,%d", 
-								preSegPosition, currentPosition - preSegPosition, segSize, ent.getValue().longValue())));
+								preSegPosition, segPosition - preSegPosition, segSize, ent.getValue().longValue())));
 						//LOG.info("entry:" + ent.getKey());
 					}
 				}

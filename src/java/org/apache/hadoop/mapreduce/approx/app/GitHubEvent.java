@@ -310,7 +310,7 @@ public class GitHubEvent {
 			if(cmdline.hasOption("r")){
 				conf.setBoolean("map.input.sampling.ratio", true);
 				conf.setBoolean("map.input.sampling.error", false);
-				conf.set("map.input.sampling.ratio.value", cmdline.getOptionValue("r"));
+				conf.set("map.input.sample.ratio.value", cmdline.getOptionValue("r"));
 			}
 			if(cmdline.hasOption("s")){
 				conf.setLong("map.input.sample.size", Long.parseLong(cmdline.getOptionValue("s")));
