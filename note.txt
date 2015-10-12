@@ -234,3 +234,9 @@ payload.issue.created_at=2015-01-0,type=IssueCommentEvent
 
 
 67108864
+
+
+segments list need to be random order
+pps degree--> variance
+
+on small data, quite clustered.
