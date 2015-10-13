@@ -56,9 +56,11 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	public static final char MARK_PARAM = 'w';
 	// If we are doing the precise or execution
 	protected boolean precise = false;
+	protected boolean flag = false;
 	protected Configuration approxConf;
 	// Keep track of what was the last key
 	protected String prevKey = null;
+	protected String prevSeg = null;
 	
 	protected int reducerId = 0;
 	//protected int n = 0;
@@ -198,16 +200,23 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 				// if it's weight k,v
 				if (keyStr.charAt(lastIndex+1) == MARK_PARAM && keyStr.length() == lastIndex + 2) {
 					String origKey = new String(aux, 0, aux.length-8);
+					String origSeg = new String(aux,0,aux.length-4);
 					// We changed the key and the previous one wasn't a parameter, write it!
-					if (!origKey.equals(prevKey) && prevKey != null) {
-						saveCurrentResult();
+					if (!origSeg.equals(prevSeg) && prevSeg != null) {
+						//saveCurrentResult();
+						return;
 						
+					}
+					if(prevSeg == null){
+						prevSeg = origSeg;
+						return;
 					}
 					wi.add(res);
 					if(wi.size() == ti.size() +  1){
 						ti.add(ti.get(ti.size()-1));
 					}
 					prevKey = origKey;
+					prevSeg = origSeg;
 					isWeight = true;
 					
 				} else {
@@ -219,6 +228,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 					}
 					ti.add(res);
 					prevKey = origKey;
+					prevSeg = keyStr;
 				}
 			}
 		}

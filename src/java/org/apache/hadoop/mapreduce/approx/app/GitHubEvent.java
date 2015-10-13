@@ -333,7 +333,7 @@ public class GitHubEvent {
 				Job job = new Job(conf, "total of GitHubEvent");
 				job.setJarByClass(GitHubEvent.class);
 				//job.setNumReduceTasks(numReducer);
-				job.setMapperClass(GitHubEventMapper.class);
+				job.setMapperClass(GitHubEventMapper3.class);
 				job.setReducerClass(GitHubEventReducer.class);
 
 				job.setMapOutputKeyClass(Text.class);
@@ -358,7 +358,7 @@ public class GitHubEvent {
 				Job job = new Job(pilotConf, "pilot");
 				job.setJarByClass(GitHubEvent.class);
 				//job.setNumReduceTasks(numReducer);
-				job.setMapperClass(GitHubEventMapper.class);
+				job.setMapperClass(GitHubEventMapper3.class);
 				job.setReducerClass(GitHubEventReducer.class);
 
 				job.setMapOutputKeyClass(Text.class);
@@ -385,7 +385,7 @@ public class GitHubEvent {
 			Job job = new Job(conf, "total of GitHubEvent");
 			job.setJarByClass(GitHubEvent.class);
 			//job.setNumReduceTasks(numReducer);
-			job.setMapperClass(GitHubEventMapper.class);
+			job.setMapperClass(GitHubEventMapper3.class);
 			job.setReducerClass(GitHubEventReducer.class);
 
 			job.setMapOutputKeyClass(Text.class);
