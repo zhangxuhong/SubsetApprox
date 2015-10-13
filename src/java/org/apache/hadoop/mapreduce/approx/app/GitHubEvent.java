@@ -60,7 +60,7 @@ public class GitHubEvent {
 			}
 			String keyword = (String)line.get("type");
 			String filter1 = "IssueCommentEvent";
-			String filter2 = "2015-01-0";
+			String filter2 = "2015-01-2";
 			if(keyword.equals(filter1)){
 				JSONObject issueCommentEvent = (JSONObject)line.get("payload");
 				JSONObject issue =  (JSONObject)issueCommentEvent.get("issue");
@@ -271,6 +271,7 @@ public class GitHubEvent {
 		options.addOption("x", "equalsize", true, "seg size for equal probability");
 		options.addOption("d", "deff",false,"enable deff estimate");
 		options.addOption("a", "app", true, "average or sum");
+		options.addOption("z", "segments", false, "number of segments");
 
 		try {
 			CommandLine cmdline = new GnuParser().parse(options, otherArgs);
@@ -281,6 +282,9 @@ public class GitHubEvent {
 			boolean isPrecise = false;
 			if (input == null || output == null) {
 				throw new org.apache.commons.cli.ParseException("No input/output option");
+			}
+			if(cmdline.hasOption("z")){
+				conf.setBoolean("map.input.sampling.segunit", true);
 			}
 			if(cmdline.hasOption("a")){
 				conf.set("mapred.sampling.app", cmdline.getOptionValue("a"));
@@ -333,7 +337,7 @@ public class GitHubEvent {
 				Job job = new Job(conf, "total of GitHubEvent");
 				job.setJarByClass(GitHubEvent.class);
 				//job.setNumReduceTasks(numReducer);
-				job.setMapperClass(GitHubEventMapper3.class);
+				job.setMapperClass(GitHubEventMapper.class);
 				job.setReducerClass(GitHubEventReducer.class);
 
 				job.setMapOutputKeyClass(Text.class);
@@ -358,7 +362,7 @@ public class GitHubEvent {
 				Job job = new Job(pilotConf, "pilot");
 				job.setJarByClass(GitHubEvent.class);
 				//job.setNumReduceTasks(numReducer);
-				job.setMapperClass(GitHubEventMapper3.class);
+				job.setMapperClass(GitHubEventMapper.class);
 				job.setReducerClass(GitHubEventReducer.class);
 
 				job.setMapOutputKeyClass(Text.class);
@@ -385,7 +389,7 @@ public class GitHubEvent {
 			Job job = new Job(conf, "total of GitHubEvent");
 			job.setJarByClass(GitHubEvent.class);
 			//job.setNumReduceTasks(numReducer);
-			job.setMapperClass(GitHubEventMapper3.class);
+			job.setMapperClass(GitHubEventMapper.class);
 			job.setReducerClass(GitHubEventReducer.class);
 
 			job.setMapOutputKeyClass(Text.class);

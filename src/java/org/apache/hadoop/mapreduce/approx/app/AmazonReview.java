@@ -244,7 +244,7 @@ public class AmazonReview {
 		options.addOption("x", "equalsize", true, "seg size for equal probability");
 		options.addOption("d", "deff",false,"enable deff estimate");
 		options.addOption("a", "app", true, "average or sum");
-
+		options.addOption("z", "segments", false, "number of segments");
 		try {
 			CommandLine cmdline = new GnuParser().parse(options, otherArgs);
 			String input  = cmdline.getOptionValue("i");
@@ -255,6 +255,9 @@ public class AmazonReview {
 			//long maxsize = 67108864;
 			if (input == null || output == null) {
 				throw new ParseException("No input/output option");
+			}
+			if(cmdline.hasOption("z")){
+				conf.setBoolean("map.input.sampling.segunit", true);
 			}
 			if(cmdline.hasOption("a")){
 				conf.set("mapred.sampling.app", cmdline.getOptionValue("a"));

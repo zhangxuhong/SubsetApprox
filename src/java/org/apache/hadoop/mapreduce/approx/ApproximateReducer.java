@@ -204,12 +204,18 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 					// We changed the key and the previous one wasn't a parameter, write it!
 					if (!origSeg.equals(prevSeg) && prevSeg != null) {
 						//saveCurrentResult();
-						return;
+						ti.add(0.0);
+						mi.add(new Long(0));
+						sw.add(0.0);
+						//return;
 						
 					}
 					if(prevSeg == null){
-						prevSeg = origSeg;
-						return;
+						//prevSeg = origSeg;
+						ti.add(0.0);
+						mi.add(new Long(0));
+						sw.add(0.0);
+						//return;
 					}
 					wi.add(res);
 					if(wi.size() == ti.size() +  1){
@@ -357,9 +363,10 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			//double total;
 			double sum = 0.0;
 			for (int i = 0; i < ti.size(); i++ ) {
-				sum += ti.get(i).doubleValue()/wi.get(i).doubleValue();
-				LOG.info("ti:" + String.valueOf(ti.get(i).doubleValue()));
-				LOG.info("wi:" + String.valueOf(wi.get(i).doubleValue()));
+				double weighted = ti.get(i).doubleValue()/wi.get(i).doubleValue();
+				sum += weighted;
+				LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
+				LOG.info("weighted total:" + String.valueOf(weighted));
 			}
 			total = sum/ti.size();
 			LOG.info("total:" + String.valueOf(total));
@@ -376,9 +383,10 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		}else{
 			double sum = 0.0;
 			for (int i = 0; i < ti.size(); i++ ) {
-				sum += ti.get(i).doubleValue()/wi.get(i).doubleValue();
-				LOG.info("ti:" + String.valueOf(ti.get(i).doubleValue()));
-				LOG.info("wi:" + String.valueOf(wi.get(i).doubleValue()));
+				double weighted = ti.get(i).doubleValue()/wi.get(i).doubleValue();
+				sum += weighted;
+				LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
+				LOG.info("weighted total:" + String.valueOf(weighted));
 			}
 			sum = sum/ti.size();
 			double population = 0.0;
@@ -424,6 +432,9 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		weightedSize = 0.0;
 		for(int i = 0; i < clusterSize; i++){
 			long ni = mi.get(i).longValue();
+			if(ni == 0){
+				continue;
+			}
 			msb += Math.pow((ti.get(i).doubleValue()/ni - y_mean), 2) * ni;
 			msw += sw.get(i).doubleValue();
 			k += Math.pow(ni, 2);
