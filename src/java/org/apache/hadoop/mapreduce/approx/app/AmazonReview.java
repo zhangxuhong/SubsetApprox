@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.regex.Pattern;
 import java.util.StringTokenizer;
 import java.util.Set;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -222,8 +224,10 @@ public class AmazonReview {
 
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
-
+		//SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Logger LOG = Logger.getLogger("Subset.main");
 		// Parsing options
+		LOG.info("start-time:");
 		String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
 		
 		Options options = new Options();
@@ -287,7 +291,7 @@ public class AmazonReview {
 			if(cmdline.hasOption("r")){
 				conf.setBoolean("map.input.sampling.ratio", true);
 				conf.setBoolean("map.input.sampling.error", false);
-				conf.set("map.input.sampling.ratio.value", cmdline.getOptionValue("r"));
+				conf.set("map.input.sample.ratio.value", cmdline.getOptionValue("r"));
 			}
 			if(cmdline.hasOption("s")){
 				conf.setLong("map.input.sample.size", Long.parseLong(cmdline.getOptionValue("s")));
@@ -326,6 +330,7 @@ public class AmazonReview {
 				FileInputFormat.setInputPaths(job,   new Path(input));
 				FileOutputFormat.setOutputPath(job, new Path(output));
 				job.waitForCompletion(true);
+				LOG.info("end-time:");
 				return;
 			}
 
@@ -379,7 +384,7 @@ public class AmazonReview {
 			FileInputFormat.setInputPaths(job,   new Path(input));
 			FileOutputFormat.setOutputPath(job, new Path(output));
 			job.waitForCompletion(true);
-
+			LOG.info("end-time:");
 
 		} catch (ParseException exp){
 			System.err.println("Error parsing command line: " + exp.getMessage());

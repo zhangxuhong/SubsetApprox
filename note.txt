@@ -147,10 +147,10 @@ hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.
 
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -a avg -p -i /2015-01.json -o /github/tmp
 **************************amazon precise******
-hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -a avg -p -i /2015-01.json -o /github/tmp
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -a total -w salesRank=Music -p -i /sortybytime -o /amazon/tmp
 ***************************amazon approx*******************
 size
-hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -d -a avg -s 200000 -w salesRank=Books,reviewTime=2000 -t amazon -i /sortybytime -o /amazon/tmp
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -d -a total -s 500000 -w salesRank=Books -t amazon10k -i /sortybytime -o /amazon/tmp
 
 size with block unit
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -d -b -a avg -s 200000 -w salesRank=Books,reviewTime=2000 -t amazon -i /sortybytime -o /amazon/tmp
@@ -160,6 +160,13 @@ hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.
 
 error
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -a avg -e 0.01 -c 0.95 -w salesRank=Books,reviewTime=2000 -t amazon -i /sortybytime -o /amazon/tmp
+
+
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.index.IndexAmazon -s 10000 -f 0-2 -t amazon10k -i /sortybytime
+
+
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -d -a total -q -r 100 -z -w salesRank=Music -t amazon10k -i /sortybytime -o /amazon/tmp
+
 
 
 

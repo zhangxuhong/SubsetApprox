@@ -249,8 +249,9 @@ public class GitHubEvent {
 
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
-
+		Logger LOG = Logger.getLogger("Subset.main");
 		// Parsing options
+		LOG.info("start-time:");
 		String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
 		
 		Options options = new Options();
@@ -352,6 +353,7 @@ public class GitHubEvent {
 				FileInputFormat.setInputPaths(job,   new Path(input));
 				FileOutputFormat.setOutputPath(job, new Path(output));
 				job.waitForCompletion(true);
+				LOG.info("end-time:");
 				return;
 			}
 			//cmdline.getOptionValue
@@ -404,7 +406,7 @@ public class GitHubEvent {
 			FileInputFormat.setInputPaths(job,   new Path(input));
 			FileOutputFormat.setOutputPath(job, new Path(output));
 			job.waitForCompletion(true);
-
+			LOG.info("end-time:");
 
 		} catch (org.apache.commons.cli.ParseException exp){
 			System.err.println("Error parsing command line: " + exp.getMessage());
