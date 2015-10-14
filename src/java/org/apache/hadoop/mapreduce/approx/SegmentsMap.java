@@ -179,7 +179,7 @@ public class SegmentsMap {
     else{
       long sampleSize = 0;
       if(conf.getBoolean("map.input.sample.pilot", false)){
-        sampleSize = conf.getLong("map.input.sample.size", 10000);
+        sampleSize = conf.getLong("map.input.sample.size", 100000);
         for(String filterKey : filterKeys){
           for(WeightedItem<Segment> seg : weightedSegs){
             seg.setWeight(seg.getItem().getKeyWeight(filterKey));
@@ -192,6 +192,7 @@ public class SegmentsMap {
             seg.setWeight(seg.getItem().getKeyWeight(filterKey));
           }
           sampleSize = conf.getLong("map.input.sample.size." + filterKey, 0);
+          LOG.info(filterKey+":"+String.valueOf(sampleSize));
           this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, sampleSize);
         }
       }

@@ -167,7 +167,7 @@ hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.inde
 
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -d -a total -q -r 100 -z -w salesRank=Music -t amazon10k -i /sortybytime -o /amazon/tmp
 
-
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -e 0.03 -c 0.95 -a total -w salesRank=Music -t amazon1k -i /sortybytime -o /amazon/tmp
 
 
 github

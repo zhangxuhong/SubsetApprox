@@ -249,16 +249,21 @@ public class AmazonReview {
 		options.addOption("d", "deff",false,"enable deff estimate");
 		options.addOption("a", "app", true, "average or sum");
 		options.addOption("z", "segments", false, "number of segments");
+		options.addOption("v", "pilot", true, "pilot size");
 		try {
 			CommandLine cmdline = new GnuParser().parse(options, otherArgs);
 			String input  = cmdline.getOptionValue("i");
 			String output = cmdline.getOptionValue("o");
 			int numReducer = 1;
+			long pilotSize = 100000;
 			boolean isError = false;
 			boolean isPrecise = false;
 			//long maxsize = 67108864;
 			if (input == null || output == null) {
 				throw new ParseException("No input/output option");
+			}
+			if(cmdline.hasOption("v")){
+				pilotSize = Long.parseLong(cmdline.getOptionValue("v"));
 			}
 			if(cmdline.hasOption("z")){
 				conf.setBoolean("map.input.sampling.segunit", true);
@@ -337,7 +342,7 @@ public class AmazonReview {
 			//cmdline.getOptionValue
 			if(isError){
 				Configuration pilotConf = new Configuration(conf);
-				pilotConf.setLong("map.input.sample.size", 1000);
+				pilotConf.setLong("map.input.sample.size", pilotSize);
 				pilotConf.setBoolean("map.input.sample.pilot", true);
 				Job job = new Job(pilotConf, "pilot");
 				job.setJarByClass(AmazonReview.class);
@@ -346,7 +351,7 @@ public class AmazonReview {
 				job.setReducerClass(AmazonReviewReducer.class);
 
 				job.setMapOutputKeyClass(Text.class);
-				job.setMapOutputValueClass(LongWritable.class);
+				job.setMapOutputValueClass(DoubleWritable.class);
 				job.setOutputKeyClass(Text.class);
 				job.setOutputValueClass(DoubleWritable.class);
 
@@ -355,14 +360,15 @@ public class AmazonReview {
 				job.setInputFormatClass(MySampleTextInputFormat.class);
 
 				FileInputFormat.setInputPaths(job,   new Path(input));
-				FileOutputFormat.setOutputPath(job, new Path(output+"/pilot"));
+				FileOutputFormat.setOutputPath(job, new Path("/pilot"));
 				job.waitForCompletion(true);
 				//estimate new size according to pilot and error pilotConfidence
 				CounterGroup cg = job.getCounters().getGroup("sampleSize");
 				Iterator<Counter> iterator = cg.iterator();
 				while(iterator.hasNext()){
 					Counter ct = iterator.next();
-					pilotConf.setLong("map.input.sample.size." + ct.getName(), ct.getValue());
+					conf.setLong("map.input.sample.size." + ct.getName(), ct.getValue());
+					LOG.info(ct.getName()+":"+ct.getValue());
 				}
 			}
 

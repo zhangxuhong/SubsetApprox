@@ -198,7 +198,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 				byte[] aux = keyStr.getBytes();
 							
 				// if it's weight k,v
-				if (keyStr.charAt(lastIndex+1) == MARK_PARAM && keyStr.length() == lastIndex + 2) {
+				if (keyStr.length() == lastIndex + 2 && keyStr.charAt(lastIndex+1) == MARK_PARAM && keyStr.length() == lastIndex + 2) {
 					String origKey = new String(aux, 0, aux.length-8);
 					String origSeg = new String(aux,0,aux.length-4);
 					// We changed the key and the previous one wasn't a parameter, write it!
@@ -365,8 +365,8 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			for (int i = 0; i < ti.size(); i++ ) {
 				double weighted = ti.get(i).doubleValue()/wi.get(i).doubleValue();
 				sum += weighted;
-				LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
-				LOG.info("weighted total:" + String.valueOf(weighted));
+				//LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
+				//LOG.info("weighted total:" + String.valueOf(weighted));
 			}
 			total = sum/ti.size();
 			LOG.info("total:" + String.valueOf(total));
@@ -385,8 +385,8 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			for (int i = 0; i < ti.size(); i++ ) {
 				double weighted = ti.get(i).doubleValue()/wi.get(i).doubleValue();
 				sum += weighted;
-				LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
-				LOG.info("weighted total:" + String.valueOf(weighted));
+				//LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
+				//LOG.info("weighted total:" + String.valueOf(weighted));
 			}
 			sum = sum/ti.size();
 			double population = 0.0;
@@ -551,7 +551,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 
 		if(!isWeight){
 			totalSize += numRecords;
-			LOG.info("totalSize+:" + String.valueOf(totalSize));
+			//LOG.info("totalSize+:" + String.valueOf(totalSize));
 			mi.add(numRecords);  
 		    double mean = sum / numRecords;
 		    calculateClusterSw(mean, cache);
@@ -559,7 +559,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		if(ti.size() == mi.size() + 1){
 			sw.add(sw.get(sw.size() -1));
 			totalSize += mi.get(mi.size()-1).longValue();
-			LOG.info("totalSize-:" + String.valueOf(totalSize));
+			//LOG.info("totalSize-:" + String.valueOf(totalSize));
 			mi.add(mi.get(mi.size()-1));
 		}
   	}

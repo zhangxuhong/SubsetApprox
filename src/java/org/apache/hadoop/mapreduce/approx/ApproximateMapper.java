@@ -63,7 +63,7 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 				// Sort method with just one more character at the end
 				int clusterID = getCurrentClusterID();
 				//LOG.info("taskID and clusterID:" + String.valueOf(sendTaskId) + "--" + String.valueOf(clusterID));
-				byte[] byteId = new byte[] {(byte) (sendTaskId/128), (byte) (sendTaskId%128), (byte) (clusterID/128), (byte) (clusterID%128)};
+				byte[] byteId = new byte[] {(byte) (sendTaskId/118), (byte) (sendTaskId%118), (byte) (clusterID/118), (byte) (clusterID%118)};
 				context.write((KEYOUT) new Text(key.toString()+new String(byteId)), value);
 				// Long method that is human readable
 				//context.write((KEYOUT) new Text(key.toString()+String.format("-%05d", sendTaskId)), value);
@@ -158,15 +158,15 @@ public abstract class ApproximateMapper<KEYIN,VALUEIN,KEYOUT,VALUEOUT extends Wr
 		String[] weights = split.getWeights();
 		//LOG.info("weights length:" + String.valueOf(weights.length));
 		int taskID = context.getTaskAttemptID().getTaskID().getId();
-		byte[] byteId1 = new byte[] {(byte) (taskID/128), (byte) (taskID%128)};
+		byte[] byteId1 = new byte[] {(byte) (taskID/118), (byte) (taskID%118)};
 		for(int i = 0; i < keys.length; i++){
-			byte[] byteId2 = new byte[] {(byte) (i/128), (byte) (i%128)};
+			byte[] byteId2 = new byte[] {(byte) (i/118), (byte) (i%118)};
 			String[] segKeys = keys[i].split(Pattern.quote("*+*"));
 			String[] segWeights = weights[i].split(Pattern.quote("*+*"));
 			for(int j = 0; j < segKeys.length; j++){
 				//may use string builder
 				//LOG.info(new String(byteId1)+new String(byteId2));
-				byte[] byteId3 = new byte[] {(byte) (j/128), (byte) (j%128)};
+				byte[] byteId3 = new byte[] {(byte) (j/118), (byte) (j%118)};
 				context.write((KEYOUT) new Text(segKeys[j] + new String(byteId1) + new String(byteId2) + new String(byteId3)+ "-w"), (VALUEOUT) new DoubleWritable(Double.parseDouble(segWeights[j])));
 			}
 		}

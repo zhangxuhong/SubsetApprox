@@ -22,7 +22,7 @@ public class ApproximatePartitioner<K,V> extends HashPartitioner<K,V> {
 			byte[] bytes = aux.getBytes();
 			// Check if it's a parameter, it has the \0 first to guarantee is the first when sorting
 			int lastIndex = aux.lastIndexOf('-');
-			if (aux.charAt(lastIndex+1) == 'w' && aux.length() == lastIndex + 2) {
+			if (aux.length() == lastIndex + 2 && aux.charAt(lastIndex+1) == 'w' && aux.length() == lastIndex + 2) {
 
 				String originalKey = new String(bytes, 0, bytes.length-8);
 				//LOG.info("w:"+ originalKey);
