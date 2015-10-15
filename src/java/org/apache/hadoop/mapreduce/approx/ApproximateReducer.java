@@ -359,6 +359,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		String app = approxConf.get("mapred.sampling.app", "total");
 		double s2 = 0.0;
 		variance = 0.0;
+		LOG.info("segments:" + String.valueOf(ti.size()));
 		if(app.equals("total")){
 			//double total;
 			double sum = 0.0;

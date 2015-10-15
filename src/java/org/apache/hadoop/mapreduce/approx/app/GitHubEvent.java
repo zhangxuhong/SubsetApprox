@@ -60,7 +60,7 @@ public class GitHubEvent {
 			}
 			String keyword = (String)line.get("type");
 			String filter1 = "IssueCommentEvent";
-			String filter2 = "2015-01-2";
+			String filter2 = "2015-01-0";
 			if(keyword.equals(filter1)){
 				JSONObject issueCommentEvent = (JSONObject)line.get("payload");
 				JSONObject issue =  (JSONObject)issueCommentEvent.get("issue");
