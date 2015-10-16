@@ -250,6 +250,7 @@ public class AmazonReview {
 		options.addOption("a", "app", true, "average or sum");
 		options.addOption("z", "segments", false, "number of segments");
 		options.addOption("v", "pilot", true, "pilot size");
+		options.addOption("l", "whole", false, "SRS all segments");
 		try {
 			CommandLine cmdline = new GnuParser().parse(options, otherArgs);
 			String input  = cmdline.getOptionValue("i");
@@ -261,6 +262,9 @@ public class AmazonReview {
 			//long maxsize = 67108864;
 			if (input == null || output == null) {
 				throw new ParseException("No input/output option");
+			}
+			if(cmdline.hasOption("l")){
+				conf.setBoolean("map.input.sample.whole", true);
 			}
 			if(cmdline.hasOption("v")){
 				pilotSize = Long.parseLong(cmdline.getOptionValue("v"));

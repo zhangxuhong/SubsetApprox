@@ -206,6 +206,14 @@ public class SegmentsMap {
   private void randomProcess(List<WeightedItem<Segment>> weightedSegs, 
                               List<Segment> sampleSegmentsList, String key, long sampleSize) {
     
+    if(conf.getBoolean("map.input.sample.whole", false)){
+      int numsegs = weightedSegs.size();
+      for(int i = 0; i < numsegs; i++){
+        WeightedItem<Segment> candidate = weightedSegs.get(i);
+        this.addToSampleSegmentList(candidate.getItem(), sampleSegmentsList, key, 1.0/numsegs);
+      }
+      return;
+    }
     if(conf.getBoolean("map.input.sampling.equal", false)){
       int numsegs = weightedSegs.size();
       Random rnd = new Random();
@@ -231,6 +239,16 @@ public class SegmentsMap {
   private void randomProcess(List<WeightedItem<Segment>> weightedSegs, 
                               List<Segment> sampleSegmentsList, String key, double ratio) {
     
+    if(conf.getBoolean("map.input.sample.whole", false)){
+      int numsegs = weightedSegs.size();
+      for(int i = 0; i < numsegs; i++){
+        WeightedItem<Segment> candidate = weightedSegs.get(i);
+        this.addToSampleSegmentList(candidate.getItem(), sampleSegmentsList, key, 1.0/numsegs);
+      }
+      return;
+    }
+
+
     if(conf.getBoolean("map.input.sampling.equal", false)){
       int numsegs = 0;
       if(conf.getBoolean("map.input.sampling.segunit", false)){
