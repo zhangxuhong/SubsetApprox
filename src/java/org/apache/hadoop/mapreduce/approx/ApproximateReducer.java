@@ -360,6 +360,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		double s2 = 0.0;
 		variance = 0.0;
 		LOG.info("segments:" + String.valueOf(ti.size()));
+		LOG.info("totalSize:" + String.valueOf(totalSize));
 		if(app.equals("total")){
 			//double total;
 			double sum = 0.0;
@@ -424,9 +425,9 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		}
 		deff_p = (totalSize * deff_p) / Math.pow(wi_sum, 2);
 		LOG.info("deff_p:" + String.valueOf(deff_p));
-		LOG.info("totalSize:" + String.valueOf(totalSize));
+		//LOG.info("totalSize:" + String.valueOf(totalSize));
 		y_mean = y_mean / totalSize;
-		LOG.info("y_mean:" + String.valueOf(y_mean));
+		//LOG.info("y_mean:" + String.valueOf(y_mean));
 		msb = 0.0;
 		msw = 0.0;
 		k = 0.0;
@@ -569,6 +570,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
                         ) throws IOException, InterruptedException {
   		String app = approxConf.get("mapred.sampling.app", "total");
   		double sum = 0.0;
+  		long numRecords = 0;
   		if(app.equals("total")){
 	  		for(VALUEIN value: values){
 				double val = 0.0;
@@ -581,11 +583,12 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 				} else if (value instanceof FloatWritable) {
 					val = (double)(((FloatWritable) value).get());
 				}
+				numRecords++;
 				sum += val;
 			}
 			context.write((KEYOUT) key, (VALUEOUT) new DoubleWritable(sum));
   		}else {
-  			long numRecords = 0;
+  			
 			for(VALUEIN value: values){
 				double val = 0.0;
 				if (value instanceof LongWritable) {
@@ -601,14 +604,16 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 				sum += val;
 			}
 			context.write((KEYOUT) key, (VALUEOUT) new DoubleWritable(sum));
-
-			if(!isWeight){
-				mi.add(numRecords);  
-			}
-			if(ti.size() == mi.size() + 1){
-				mi.add(mi.get(mi.size()-1));
-			}
-  		}
+		}
+		if(!isWeight){
+			mi.add(numRecords); 
+			totalSize += numRecords; 
+		}
+		if(ti.size() == mi.size() + 1){
+			totalSize += mi.get(mi.size()-1).longValue();
+			mi.add(mi.get(mi.size()-1));
+		}
+  		
   	}
 	
 }

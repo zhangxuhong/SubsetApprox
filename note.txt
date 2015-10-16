@@ -170,7 +170,7 @@ hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -e 0.03 -c 0.95 -a total -w salesRank=Music -t amazon1k -i /sortybytime -o /amazon/tmp
 
 
-github
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -a total -r 1.0 -w payload.issue.created_at=2015-01-0 -t github10k -i /2015-01.json -o /github/tmp -m 33554432
 
 
 def printType1(file):
