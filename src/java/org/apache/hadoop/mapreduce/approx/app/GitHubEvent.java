@@ -92,67 +92,28 @@ public class GitHubEvent {
 			}
 			String keyword = (String)line.get("type");
 			String filter1 = "IssueCommentEvent";
-			//String filter2 = "true";
+			String filter2 = "2015-01-0";
 			if(keyword.equals(filter1)){
 				if(line.containsKey("org")){
 					//String keyword2 = "true";
-					JSONObject payload = (JSONObject)line.get("payload");
-					JSONObject issue =  (JSONObject)payload.get("issue"); //forkee
-					Long size =  (Long)issue.get("comments"); // size
-					DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
-					context.write(new Text("true"+"+*+"+filter1), quantity);
+					JSONObject issueCommentEvent = (JSONObject)line.get("payload");
+					JSONObject issue =  (JSONObject)issueCommentEvent.get("issue"); //forkee
+					String keyword2 = (String)issue.get("created_at");
+					keyword2 = keyword2.substring(0,9);
+					if(keyword2.equals(filter2)){
+						JSONObject comment =  (JSONObject)issueCommentEvent.get("comment");
+						String commentBody = (String)comment.get("body");
+						StringTokenizer st = new StringTokenizer(commentBody);
+						int size =  st.countTokens();
+						DoubleWritable quantity = new DoubleWritable((double)size);
+						context.write(new Text("true"+"+*+"+filter2), quantity);
+					}	
 				}
 			}
 			
 		}
 	}
-	public static class GitHubEventMapper6 extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
-		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
 
-		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-			JSONParser parser = new JSONParser();
-			JSONObject line = null;
-			try{
-				line = (JSONObject)parser.parse(value.toString());
-			} catch (org.json.simple.parser.ParseException e){
-				e.printStackTrace();
-			}
-			String keyword = (String)line.get("type");
-			String filter1 = "PushEvent";
-			if(keyword.equals(filter1)){
-				if(line.containsKey("org")){
-					JSONObject payload = (JSONObject)line.get("payload");
-					Long size =  (Long)payload.get("size");
-					DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
-					context.write(new Text("true"+"+*+"+filter1), quantity);
-				}
-			}
-			
-		}
-	}
-	//*************push event
-	public static class GitHubEventMapper1 extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
-		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
-
-		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-			JSONParser parser = new JSONParser();
-			JSONObject line = null;
-			try{
-				line = (JSONObject)parser.parse(value.toString());
-			} catch (org.json.simple.parser.ParseException e){
-				e.printStackTrace();
-			}
-			String keyword = (String)line.get("type");
-			String filter1 = "PushEvent";
-			if(keyword.equals(filter1)){
-				JSONObject payload = (JSONObject)line.get("payload");
-				Long size =  (Long)payload.get("size");
-				DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
-				context.write(new Text(filter1), quantity);
-			}
-			
-		}
-	}
 	//*************issuecomment, number of comments
 	public static class GitHubEventMapper2 extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
 		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
@@ -177,8 +138,8 @@ public class GitHubEvent {
 			
 		}
 	}
-	//*************fork event, fork size(bytes)
-	public static class GitHubEventMapper3 extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
+
+	public static class GitHubEventMapper7 extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
 		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
 
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
@@ -189,39 +150,81 @@ public class GitHubEvent {
 			} catch (org.json.simple.parser.ParseException e){
 				e.printStackTrace();
 			}
+			String[] whereKeys = context.getConfiguration().get("map.input.where.clause", null).split(Pattern.quote(","));
+			String filter1 = whereKeys[0].split("=")[1];
+			String filter2 = "";
+			if(whereKeys.length == 2){
+				filter2 = whereKeys[1].split("=")[1];
+			}
 			String keyword = (String)line.get("type");
-			String filter1 = "ForkEvent";
-			if(keyword.equals(filter1)){
-				JSONObject payload = (JSONObject)line.get("payload");
-				JSONObject forkee =  (JSONObject)payload.get("forkee");
-				Long size =  (Long)forkee.get("size");
-				DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
-				context.write(new Text(filter1), quantity);
+			if(filter1.equals("all")){
+				if(keyword.equals("PullRequestEvent")){
+					JSONObject payload = (JSONObject)line.get("payload");
+					JSONObject pull_request =  (JSONObject)payload.get("pull_request");
+					Long size =  (Long)pull_request.get("additions");
+					DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
+					context.write(new Text("PullRequestEvent"), quantity);
+				} else if(keyword.equals("ForkEvent")){
+					JSONObject payload = (JSONObject)line.get("payload");
+					JSONObject forkee =  (JSONObject)payload.get("forkee");
+					Long size =  (Long)forkee.get("size");
+					DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
+					context.write(new Text("ForkEvent"), quantity);
+				} else if (keyword.equals("PushEvent")){
+					if(filter2.equals("")){
+						JSONObject payload = (JSONObject)line.get("payload");
+						Long size =  (Long)payload.get("size");
+						DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
+						context.write(new Text("PushEvent"), quantity);
+					}else{
+						if(line.containsKey("org")){
+							JSONObject payload = (JSONObject)line.get("payload");
+							Long size =  (Long)payload.get("size");
+							DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
+							context.write(new Text("true"+"+*+"+"PushEvent"), quantity);
+						}
+					}
+				}
+			} else if(filter1.equals(keyword)){
+				if(keyword.equals("PullRequestEvent")){
+					if(filter2.equals("")){
+						JSONObject payload = (JSONObject)line.get("payload");
+						JSONObject pull_request =  (JSONObject)payload.get("pull_request");
+						Long size =  (Long)pull_request.get("additions");
+						DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
+						context.write(new Text(filter1), quantity);
+					}else{
+						if(line.containsKey("org")){
+							JSONObject payload = (JSONObject)line.get("payload");
+							JSONObject pull_request =  (JSONObject)payload.get("pull_request");
+							Long size =  (Long)pull_request.get("additions");
+							DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
+							context.write(new Text("true"+"+*+"+filter1), quantity);
+						}
+					}
+				} else if(keyword.equals("ForkEvent")){
+					JSONObject payload = (JSONObject)line.get("payload");
+					JSONObject forkee =  (JSONObject)payload.get("forkee");
+					Long size =  (Long)forkee.get("size");
+					DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
+					context.write(new Text(filter1), quantity);
+				} else if (keyword.equals("PushEvent")){
+					if(filter2.equals("")){
+						JSONObject payload = (JSONObject)line.get("payload");
+						Long size =  (Long)payload.get("size");
+						DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
+						context.write(new Text(filter1), quantity);
+					}else{
+						if(line.containsKey("org")){
+							JSONObject payload = (JSONObject)line.get("payload");
+							Long size =  (Long)payload.get("size");
+							DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
+							context.write(new Text("true"+"+*+"+filter1), quantity);
+						}
+					}
+				}
 			}
 			
-		}
-	}	
-	// pullrequest event, the number of additions
-	public static class GitHubEventMapper4 extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
-		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
-
-		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-			JSONParser parser = new JSONParser();
-			JSONObject line = null;
-			try{
-				line = (JSONObject)parser.parse(value.toString());
-			} catch (org.json.simple.parser.ParseException e){
-				e.printStackTrace();
-			}
-			String keyword = (String)line.get("type");
-			String filter1 = "PullRequestEvent";
-			if(keyword.equals(filter1)){
-				JSONObject payload = (JSONObject)line.get("payload");
-				JSONObject pull_request =  (JSONObject)payload.get("pull_request");
-				Long size =  (Long)pull_request.get("additions");
-				DoubleWritable quantity = new DoubleWritable((double)(size.longValue()));
-				context.write(new Text(filter1), quantity);
-			}
 			
 		}
 	}
@@ -240,7 +243,7 @@ public class GitHubEvent {
 			}else {
 				result.set(sum/count);
 			}
-			LOG.info("precise result:"+result.toString());
+			LOG.info("precise result:"+ key.toString() + ":" + result.toString());
 			context.write(key, result);
 		}
 	}
@@ -343,7 +346,7 @@ public class GitHubEvent {
 				Job job = new Job(conf, "total of GitHubEvent");
 				job.setJarByClass(GitHubEvent.class);
 				//job.setNumReduceTasks(numReducer);
-				job.setMapperClass(GitHubEventMapper.class);
+				job.setMapperClass(GitHubEventMapper7.class);
 				job.setReducerClass(GitHubEventReducer.class);
 
 				job.setMapOutputKeyClass(Text.class);
@@ -369,7 +372,7 @@ public class GitHubEvent {
 				Job job = new Job(pilotConf, "pilot");
 				job.setJarByClass(GitHubEvent.class);
 				//job.setNumReduceTasks(numReducer);
-				job.setMapperClass(GitHubEventMapper.class);
+				job.setMapperClass(GitHubEventMapper7.class);
 				job.setReducerClass(GitHubEventReducer.class);
 
 				job.setMapOutputKeyClass(Text.class);
@@ -397,7 +400,7 @@ public class GitHubEvent {
 			Job job = new Job(conf, "total of GitHubEvent");
 			job.setJarByClass(GitHubEvent.class);
 			//job.setNumReduceTasks(numReducer);
-			job.setMapperClass(GitHubEventMapper.class);
+			job.setMapperClass(GitHubEventMapper7.class);
 			job.setReducerClass(GitHubEventReducer.class);
 
 			job.setMapOutputKeyClass(Text.class);

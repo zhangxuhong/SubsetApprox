@@ -143,9 +143,12 @@ hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.inde
 
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -d -a avg -s 100000 -w payload.issue.created_at=2015-01-0 -t github10k -i /2015-01.json -o /github/tmp
 
+
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -d -a total -r 0.2 -w payload.issue.created_at=2015-01-0,org=true -t github1k -i /2015-01.json -o /github/tmp
+
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -d -a total -s 200000 -w type=IssueCommentEvent,org=true -t github10k -i /2015-01.json -o /github/tmp
 
-hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -a avg -p -i /2015-01.json -o /github/tmp
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -a total -p -i /2015-01.json -o /github/tmp
 **************************amazon precise******
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -a total -w salesRank=Music -p -i /sortybytime -o /amazon/tmp
 ***************************amazon approx*******************
@@ -166,6 +169,8 @@ hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.inde
 
 
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -d -a total -q -r 100 -z -w salesRank=Music -t amazon10k -i /sortybytime -o /amazon/tmp
+
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -a total -s 100 -w salesRank=Music -t amazon1k -i /sortybytime -o /amazon/tmp -m=
 
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -e 0.03 -c 0.95 -a total -w salesRank=Music -t amazon1k -i /sortybytime -o /amazon/tmp
 

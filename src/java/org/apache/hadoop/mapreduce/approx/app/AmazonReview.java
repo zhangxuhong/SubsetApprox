@@ -215,7 +215,7 @@ public class AmazonReview {
 			}else {
 				result.set(sum/count);
 			}
-			LOG.info("precise result:"+result.toString());
+			LOG.info("precise result:"+ key.toString() + ":" + result.toString());
 			context.write(key, result);
 		}
 	}
@@ -348,6 +348,7 @@ public class AmazonReview {
 				Configuration pilotConf = new Configuration(conf);
 				pilotConf.setLong("map.input.sample.size", pilotSize);
 				pilotConf.setBoolean("map.input.sample.pilot", true);
+				pilotConf.setLong("mapreduce.input.fileinputformat.split.maxsize", 11184810);
 				Job job = new Job(pilotConf, "pilot");
 				job.setJarByClass(AmazonReview.class);
 				//job.setNumReduceTasks(numReducer);
