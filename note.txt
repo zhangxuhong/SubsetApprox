@@ -173,6 +173,8 @@ hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.
 hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.GitHubEvent -a total -r 1.0 -w payload.issue.created_at=2015-01-0 -t github10k -i /2015-01.json -o /github/tmp -m 33554432
 
 
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.app.AmazonReview -a total -r 1.0 -w salesRank=Music -t amazon10k -i /sortybytime -o /amazon/tmp -m 33554432
+
 def printType1(file):
 	a = json.loads(file.readline())
 	print(a['created_at'])
@@ -247,3 +249,10 @@ segments list need to be random order
 pps degree--> variance
 
 on small data, quite clustered.
+
+2015-10-15 18:30:02,741 INFO Subset.Reducer:segments:78174
+2015-10-15 18:30:02,764 INFO Subset.Reducer:total:4.4334908974294525E8
+2015-10-15 18:30:02,771 INFO Subset.Reducer:var:8.504869476324487E12
+2015-10-15 18:30:02,772 INFO Subset.Reducer:error:5715969.4348595105
+2015-10-15 18:30:02,820 INFO Subset.Reducer:deff_p:0.9999999999999827
+2015-10-15 18:30:02,820 INFO Subset.Reducer:totalSize:3603756
