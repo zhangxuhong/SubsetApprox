@@ -76,7 +76,7 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
   }
   
 
-  public boolean nextKeyValue() throws IOException, InterruptedException {
+  public boolean nextKeyValue1() throws IOException, InterruptedException {
     while(nextKeyValueOrg()){
       String currentValue = ((Text)this.getCurrentValue()).toString();
       JSONObject jsonCurrentValue = null;
@@ -138,6 +138,18 @@ public class SampleRecordReader<K, V> extends RecordReader<K, V> {
   }
 
   public boolean nextKeyValueOrg() throws IOException, InterruptedException {
+
+    while ((curReader == null) || !curReader.nextKeyValue()) {
+      if (!initNextRecordReader()) {
+        //LOG.info("next:false");
+        return false;
+      }
+    }
+    //LOG.info("next:true");
+    return true;
+  }
+
+  public boolean nextKeyValue() throws IOException, InterruptedException {
 
     while ((curReader == null) || !curReader.nextKeyValue()) {
       if (!initNextRecordReader()) {
