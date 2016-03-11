@@ -67,24 +67,20 @@ public class IndexTpchMapper extends Mapper<LongWritable, Text, Text, Text>{
 		
 		if(segSize == 0){
 			String keyword = "";
-			try{
-				String[] line = value.toString().split(Pattern.quote(delimiter));
-				for(int i = 0; i < indexFields.length; i++){
-					int index = Integer.parseInt(indexFields[i]);
-					keyword = "";
-					keyword = line[index];
-						
-					//LOG.info("keyword:" + keyword);
-					Long preValue = histogram.get(i).get(keyword);
-					if(preValue != null){
-						histogram.get(i).put(keyword, preValue + 1);
-					}
-					else{
-						histogram.get(i).put(keyword, new Long(1));
-					}
+			String[] line = value.toString().split(Pattern.quote(delimiter));
+			for(int i = 0; i < indexFields.length; i++){
+				int index = Integer.parseInt(indexFields[i]);
+				keyword = "";
+				keyword = line[index];
+					
+				//LOG.info("keyword:" + keyword);
+				Long preValue = histogram.get(i).get(keyword);
+				if(preValue != null){
+					histogram.get(i).put(keyword, preValue + 1);
 				}
-			} catch (ParseException e){
-				e.printStackTrace();
+				else{
+					histogram.get(i).put(keyword, new Long(1));
+				}
 			}
 			recordCount++;
 			return;
@@ -121,23 +117,19 @@ public class IndexTpchMapper extends Mapper<LongWritable, Text, Text, Text>{
 		//int[] index = new int[indexFields.length];
 		
 		String keyword = "";
-		try{
-			String[] line = value.toString().split(Pattern.quote(delimiter));
-				for(int i = 0; i < indexFields.length; i++){
-					int index = Integer.parseInt(indexFields[i]);
-					keyword = "";
-					keyword = line[index];
-					//LOG.info("keyword:" + keyword);
-					Long preValue = histogram.get(i).get(keyword);
-					if(preValue != null){
-						histogram.get(i).put(keyword, preValue + 1);
-					}
-					else{
-						histogram.get(i).put(keyword, new Long(1));
-					}
-			}
-		} catch (ParseException e){
-			e.printStackTrace();
+		String[] line = value.toString().split(Pattern.quote(delimiter));
+			for(int i = 0; i < indexFields.length; i++){
+				int index = Integer.parseInt(indexFields[i]);
+				keyword = "";
+				keyword = line[index];
+				//LOG.info("keyword:" + keyword);
+				Long preValue = histogram.get(i).get(keyword);
+				if(preValue != null){
+					histogram.get(i).put(keyword, preValue + 1);
+				}
+				else{
+					histogram.get(i).put(keyword, new Long(1));
+				}
 		}
 		recordCount++;
 		

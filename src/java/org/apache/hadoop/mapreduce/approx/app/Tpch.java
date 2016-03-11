@@ -51,148 +51,52 @@ public class Tpch {
 	/**
 	 * Launch wikipedia page rank.
 	 */
-	public static class TpchMapper1 extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
-		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
-		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-				JSONParser parser = new JSONParser();
-				JSONObject line = null;
-				try{
-					line = (JSONObject)parser.parse(value.toString());
-				} catch (org.json.simple.parser.ParseException e){
-					e.printStackTrace();
-				}
-				String filter = "Books";
-				if(line.containsKey("salesRank")){
-					JSONObject salesRank = (JSONObject)line.get("salesRank");
-					Set<String> keyset = (Set<String>)salesRank.keySet();
-					for(String categ: keyset){
-						if(categ.equals(filter)){
-							DoubleWritable quantity = new DoubleWritable(0.0);
-							if(line.containsKey("reviewText")){
-								String review = (String)line.get("reviewText");
-								StringTokenizer st = new StringTokenizer(review);
-								int size =  st.countTokens();
-								quantity.set((double)size);
-							}
-							context.write(new Text(filter), quantity);
-						}
-					}
-			}
-			
-		}
-	}
-	public static class TpchMapper2 extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
-		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
-		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-				JSONParser parser = new JSONParser();
-				JSONObject line = null;
-				try{
-					line = (JSONObject)parser.parse(value.toString());
-				} catch (org.json.simple.parser.ParseException e){
-					e.printStackTrace();
-				}
-				//String filter = "Books";
-				if(line.containsKey("salesRank")){
-					JSONObject salesRank = (JSONObject)line.get("salesRank");
-					Set<String> keyset = (Set<String>)salesRank.keySet();
-					for(String categ: keyset){
-						if(categ.equals("Books")){
-							DoubleWritable quantity = new DoubleWritable(0.0);
-							if(line.containsKey("reviewText")){
-								String review = (String)line.get("reviewText");
-								StringTokenizer st = new StringTokenizer(review);
-								int size =  st.countTokens();
-								quantity.set((double)size);
-							}
-							context.write(new Text("Books"), quantity);
-						}else if(categ.equals("Cell Phones & Accessories")){
-							DoubleWritable quantity = new DoubleWritable(0.0);
-							if(line.containsKey("reviewText")){
-								String review = (String)line.get("reviewText");
-								StringTokenizer st = new StringTokenizer(review);
-								int size =  st.countTokens();
-								quantity.set((double)size);
-							}
-							context.write(new Text("Cell Phones & Accessories"), quantity);
-						}else if(categ.equals("Music")){
-							DoubleWritable quantity = new DoubleWritable(0.0);
-							if(line.containsKey("reviewText")){
-								String review = (String)line.get("reviewText");
-								StringTokenizer st = new StringTokenizer(review);
-								int size =  st.countTokens();
-								quantity.set((double)size);
-							}
-							context.write(new Text("Music"), quantity);
-						}else if(categ.equals("Movies & TV")){
-							DoubleWritable quantity = new DoubleWritable(0.0);
-							if(line.containsKey("reviewText")){
-								String review = (String)line.get("reviewText");
-								StringTokenizer st = new StringTokenizer(review);
-								int size =  st.countTokens();
-								quantity.set((double)size);
-							}
-							context.write(new Text("Movies & TV"), quantity);
-						}else if(categ.equals("Clothing")){
-							DoubleWritable quantity = new DoubleWritable(0.0);
-							if(line.containsKey("reviewText")){
-								String review = (String)line.get("reviewText");
-								StringTokenizer st = new StringTokenizer(review);
-								int size =  st.countTokens();
-								quantity.set((double)size);
-							}
-							context.write(new Text("Clothing"), quantity);
-						}
-					}
-			}
-			
-		}
-	}
 	public static class TpchMapper extends ApproximateMapper<LongWritable, Text, Text, DoubleWritable> {
 		private static final Logger LOG = Logger.getLogger("Subset.AppMapper");
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-				
+				int index_quantity = 5;
+				int index_filter1 = 14;
+				int index_filter2 = 6;
+				int index_filter3 = 7;
+				int index_filter4 = 13;
+				DoubleWritable quantity = new DoubleWritable(0.0);
+				String[] line = value.toString().split(Pattern.quote("|"));
 				String[] whereKeys = context.getConfiguration().get("map.input.where.clause", null).split(Pattern.quote(","));
 				String filter1 = whereKeys[0].split("=")[1];
 				String filter2 = "";
-				if(whereKeys.length == 2){
+				if(whereKeys.length > 1){
 					filter2 = whereKeys[1].split("=")[1];
 				}
-				if(line.containsKey("salesRank")){
-					JSONObject salesRank = (JSONObject)line.get("salesRank");
-					Set<String> keyset = (Set<String>)salesRank.keySet();
-					for(String categ: keyset){
-						if(categ.equals(filter1)){
-							if(filter2.equals("")){
-								DoubleWritable quantity = new DoubleWritable(0.0);
-								if(line.containsKey("reviewText")){
-									String review = (String)line.get("reviewText");
-									StringTokenizer st = new StringTokenizer(review);
-									int size =  st.countTokens();
-									quantity.set((double)size);
-								}
-								context.write(new Text(filter1), quantity);
-
-							}else{
-								if(line.containsKey("reviewTime")){
-									String time = (String)line.get("reviewTime");
-									if(time.contains(filter2)){
-										DoubleWritable quantity = new DoubleWritable(0.0);
-										if(line.containsKey("reviewText")){
-											String review = (String)line.get("reviewText");
-											StringTokenizer st = new StringTokenizer(review);
-											int size =  st.countTokens();
-											quantity.set((double)size);
-										}
-										context.write(new Text(filter2+ "+*+" + filter1), quantity);
-
-									}
-								}
-							}
-						}
+				String filter3 = "";
+				if(whereKeys.length > 2){
+					filter3 = whereKeys[2].split("=")[1];
+				}
+				String filter4 = "";
+				if(whereKeys.length > 3){
+					filter4 = whereKeys[3].split("=")[1];
+				}
+				if(! filter4.equals("")){
+					if(line[index_filter4].equals(filter4) && line[index_filter3].equals(filter3) && line[index_filter2].equals(filter2) && line[index_filter1].equals(filter1)){
+						quantity.set(Double.parseDouble(line[index_quantity]));
+						context.write(new Text(filter4+ "+*+" + filter3+ "+*+" + filter2+ "+*+" + filter1), quantity);
 					}
+				}else if(! filter3.equals("")){
+					if(line[index_filter3].equals(filter3) && line[index_filter2].equals(filter2) && line[index_filter1].equals(filter1)){
+						quantity.set(Double.parseDouble(line[index_quantity]));
+						context.write(new Text(filter3+ "+*+" + filter2+ "+*+" + filter1), quantity);
+					}
+				}else if(! filter2.equals("")){
+					if(line[index_filter2].equals(filter2) && line[index_filter1].equals(filter1)){
+						quantity.set(Double.parseDouble(line[index_quantity]));
+						context.write(new Text(filter2+ "+*+" + filter1), quantity);
+					}
+				}else{
+					if(line[index_filter1].equals(filter1)){
+						quantity.set(Double.parseDouble(line[index_quantity]));
+						context.write(new Text(filter1), quantity);
+					}
+				}
 			}
-			
-		}
 	}
 	public static class TpchReducer extends ApproximateReducer<Text, DoubleWritable, Text, DoubleWritable> {
 		DoubleWritable result = new DoubleWritable();
@@ -213,7 +117,6 @@ public class Tpch {
 			context.write(key, result);
 		}
 	}
-
 
 
 	public static void main(String[] args) throws Exception {
