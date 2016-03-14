@@ -281,10 +281,10 @@ public class SegmentsMap {
     }
     
     long records = (long)Math.ceil(selector.getRangeSize() * ratio);
-    for(int i = 0; i < records + 1;){
+    for(double i = 0; i < ratio;){
       WeightedItem<Segment> candidate = selector.select();
       double weight = (double)(candidate.getWeight()) / selector.getRangeSize();
-      i += candidate.getWeight();
+      i += weight;
       this.addToSampleSegmentList(candidate.getItem(), sampleSegmentsList, key, weight);
     }
     

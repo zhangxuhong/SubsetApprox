@@ -59,6 +59,7 @@ public class Tpch {
 				int index_filter2 = 6;
 				int index_filter3 = 7;
 				int index_filter4 = 13;
+				int index_filter5 = 8;
 				DoubleWritable quantity = new DoubleWritable(0.0);
 				String[] line = value.toString().split(Pattern.quote("|"));
 				String[] whereKeys = context.getConfiguration().get("map.input.where.clause", null).split(Pattern.quote(","));
@@ -75,7 +76,17 @@ public class Tpch {
 				if(whereKeys.length > 3){
 					filter4 = whereKeys[3].split("=")[1];
 				}
-				if(! filter4.equals("")){
+				String filter5 = "";
+				if(whereKeys.length > 4){
+					filter4 = whereKeys[4].split("=")[1];
+				}
+				if(! filter5.equals("")){
+					if(line[index_filter5].equals(filter5) && line[index_filter4].equals(filter4) && line[index_filter3].equals(filter3) 
+						&& line[index_filter2].equals(filter2) && line[index_filter1].equals(filter1)){
+						quantity.set(Double.parseDouble(line[index_quantity]));
+						context.write(new Text(filter5 + "+*+" + filter4 + "+*+" + filter3 + "+*+" + filter2 + "+*+" + filter1), quantity);
+					}
+				}else if(! filter4.equals("")){
 					if(line[index_filter4].equals(filter4) && line[index_filter3].equals(filter3) && line[index_filter2].equals(filter2) && line[index_filter1].equals(filter1)){
 						quantity.set(Double.parseDouble(line[index_quantity]));
 						context.write(new Text(filter4+ "+*+" + filter3+ "+*+" + filter2+ "+*+" + filter1), quantity);
