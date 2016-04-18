@@ -392,9 +392,16 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			}
 			sum = sum/ti.size();
 			double population = 0.0;
+			String real = "";
+			String weights = "";
 			for(int i = 0; i < mi.size(); i++){
 				population += mi.get(i).longValue()/wi.get(i).doubleValue();
+				real=real+mi.get(i).toString()+",";
+				weights = weights + wi.get(i).toString()+",";
+
 			}
+			LOG.info("real:" + real);
+			LOG.info("weights:" + weights);
 			population = population/mi.size();
 			avg = sum/population;
 			LOG.info("avg:" + String.valueOf(avg));

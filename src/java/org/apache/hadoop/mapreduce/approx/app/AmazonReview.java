@@ -42,7 +42,7 @@ import org.apache.hadoop.mapreduce.approx.ApproximateReducer;
 import org.apache.hadoop.mapreduce.approx.lib.input.MySampleTextInputFormat;
 
 import org.apache.log4j.Logger;
-
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 //import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.*;
@@ -160,40 +160,81 @@ public class AmazonReview {
 				String[] whereKeys = context.getConfiguration().get("map.input.where.clause", null).split(Pattern.quote(","));
 				String filter1 = whereKeys[0].split("=")[1];
 				String filter2 = "";
-				if(whereKeys.length == 2){
+				if(whereKeys.length > 1){
 					filter2 = whereKeys[1].split("=")[1];
 				}
+				String filter3 = "";
+				if(whereKeys.length > 2){
+					filter3 = whereKeys[2].split("=")[1];
+				}
+				String filter4 = "";
+				if(whereKeys.length > 3){
+					filter4 = whereKeys[3].split("=")[1];
+				}
+
 				if(line.containsKey("salesRank")){
 					JSONObject salesRank = (JSONObject)line.get("salesRank");
 					Set<String> keyset = (Set<String>)salesRank.keySet();
 					for(String categ: keyset){
 						if(categ.equals(filter1)){
-							if(filter2.equals("")){
+							if(!filter4.equals("") && line.containsKey("categories") && line.containsKey("helpful")
+								&& line.containsKey("overall")){
+								
+								JSONArray type = (JSONArray)line.get("categories");
+								String categSize = String.valueOf(type.size());
+
+								JSONArray helpful = (JSONArray)line.get("helpful");
+								String help = helpful.get(0).toString();
+
+								String overall = line.get("overall").toString();
+
+								if(categSize.equals(filter4) && help.equals(filter3) && overall.equals(filter2)){
+									DoubleWritable quantity = new DoubleWritable(0.0);
+									if(line.containsKey("reviewText")){
+										String price = (String)line.get("reviewText");
+										quantity.set(price.length());
+										context.write(new Text(filter4+ "+*+" + filter3+ "+*+" + filter2+ "+*+" + filter1), quantity);
+									}
+									
+								}
+
+							}else if (!filter3.equals("") && line.containsKey("helpful") && line.containsKey("overall")){
+								JSONArray helpful = (JSONArray)line.get("helpful");
+								String help = helpful.get(0).toString();
+
+								String overall = line.get("overall").toString();
+
+								if(help.equals(filter3) && overall.equals(filter2)){
+									DoubleWritable quantity = new DoubleWritable(0.0);
+									if(line.containsKey("reviewText")){
+										String price = (String)line.get("reviewText");
+										quantity.set(price.length());
+										context.write(new Text(filter3+ "+*+" + filter2+ "+*+" + filter1), quantity);
+									}
+									
+								}
+							}else if (!filter2.equals("") && line.containsKey("overall")){
+								String overall = line.get("overall").toString();
+
+								if(overall.equals(filter2)){
+									DoubleWritable quantity = new DoubleWritable(0.0);
+									if(line.containsKey("reviewText")){
+										String price = (String)line.get("reviewText");
+										quantity.set(price.length());
+										context.write(new Text(filter2+ "+*+" + filter1), quantity);
+									}
+									
+								}
+							}else{
 								DoubleWritable quantity = new DoubleWritable(0.0);
 								if(line.containsKey("reviewText")){
-									String review = (String)line.get("reviewText");
-									StringTokenizer st = new StringTokenizer(review);
-									int size =  st.countTokens();
-									quantity.set((double)size);
+									String price = (String)line.get("reviewText");
+									quantity.set(price.length());
+									context.write(new Text(filter1), quantity);
 								}
-								context.write(new Text(filter1), quantity);
-
-							}else{
-								if(line.containsKey("reviewTime")){
-									String time = (String)line.get("reviewTime");
-									if(time.contains(filter2)){
-										DoubleWritable quantity = new DoubleWritable(0.0);
-										if(line.containsKey("reviewText")){
-											String review = (String)line.get("reviewText");
-											StringTokenizer st = new StringTokenizer(review);
-											int size =  st.countTokens();
-											quantity.set((double)size);
-										}
-										context.write(new Text(filter2+ "+*+" + filter1), quantity);
-
-									}
-								}
+								
 							}
+							break;
 						}
 					}
 			}

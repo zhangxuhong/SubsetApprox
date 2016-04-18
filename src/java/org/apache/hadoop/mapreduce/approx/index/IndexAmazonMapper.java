@@ -99,7 +99,7 @@ public class IndexAmazonMapper extends Mapper<LongWritable, Text, Text, Text>{
 					}else if (index == 3) {
 						if(line.containsKey("helpful")){
 							JSONArray helpful = (JSONArray)line.get("helpful");
-							keyword = String.valueOf((int)helpful.get(0));
+							keyword = (String)helpful.get(0);
 						}
 						else{
 							continue;
@@ -212,7 +212,24 @@ public class IndexAmazonMapper extends Mapper<LongWritable, Text, Text, Text>{
 							continue;
 						}
 						
-					}else if (index == 2){
+					}else if (index == 2) {
+						if(line.containsKey("overall")){
+							keyword = line.get("overall").toString();
+						}
+						else{
+							continue;
+						}
+						
+					}else if (index == 3) {
+						if(line.containsKey("helpful")){
+							JSONArray helpful = (JSONArray)line.get("helpful");
+							keyword = helpful.get(0).toString();
+						}
+						else{
+							continue;
+						}
+						
+					}else if (index == 4){
 						if(line.containsKey("salesRank")){
 							JSONObject salesRank = (JSONObject)line.get("salesRank");
 							Set<String> keyset = (Set<String>)salesRank.keySet();
@@ -232,7 +249,8 @@ public class IndexAmazonMapper extends Mapper<LongWritable, Text, Text, Text>{
 						//String type = "";
 						if(line.containsKey("categories")){
 							JSONArray type = (JSONArray)line.get("categories");
-							for(int k = 0; k < type.size(); k++){
+							keyword = String.valueOf(type.size());
+							/*for(int k = 0; k < type.size(); k++){
 								JSONArray categories = (JSONArray)type.get(k);
 								for(int j = 0; j < categories.size(); j++){
 									String categ = (String)categories.get(j);
@@ -245,8 +263,10 @@ public class IndexAmazonMapper extends Mapper<LongWritable, Text, Text, Text>{
 									}
 								}
 							}
+							continue;*/
+						}else{
 							continue;
-						}	
+						}
 					}
 					//LOG.info("keyword:" + keyword);
 					Long preValue = histogram.get(i).get(keyword);
