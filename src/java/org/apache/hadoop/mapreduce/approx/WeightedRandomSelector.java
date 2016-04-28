@@ -10,14 +10,16 @@ public class WeightedRandomSelector<T> {
     private final Random rnd = new Random();
     private final TreeMap<Integer, WeightedItem> ranges = new TreeMap<Integer, WeightedItem>();
     private int rangeSize; // Lowest integer higher than the top of the highest range.
+    private int rangeSizeDep;
 
     public WeightedRandomSelector(List<WeightedItem<T>> weightedItems) {
         int top = 0; // Increments by size of non zero range added as ranges grows.
-
+        rangeSizeDep=0;
         for(WeightedItem<T> wi : weightedItems) {
             int weight = wi.getWeight();
             if(weight > 0) {
                 top = top + weight;
+                rangeSizeDep+=wi.getWeightDep();
                 //Range<T> r = new Range<T>(bottom, top, wi);
                 //if(ranges.containsKey(wi)) {
                     //Range<T> other = ranges.get(r);
@@ -40,6 +42,10 @@ public class WeightedRandomSelector<T> {
 
     public int getRangeSize(){
         return rangeSize;
+    }
+
+    public int getRangeSizeDep(){
+        return rangeSizeDep;
     }
 
     // public static class Range<T> implements Comparable<Object>{
@@ -91,6 +97,7 @@ public class WeightedRandomSelector<T> {
     public static class WeightedItem<T>{
         private int weight;
         private T item;
+        private int weightDep;
         public WeightedItem(int weight, T item) {
             this.item = item;
             this.weight = weight;
@@ -105,6 +112,12 @@ public class WeightedRandomSelector<T> {
         }
         public void setWeight(int weight){
             this.weight = weight;
+        }
+        public int getWeightDep(){
+            return weightDep;
+        }
+        public void setWeightDep(int weight){
+            this.weightDep = weight;
         }
 
         /* (non-Javadoc)

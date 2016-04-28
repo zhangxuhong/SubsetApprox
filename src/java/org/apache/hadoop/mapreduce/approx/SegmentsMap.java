@@ -83,6 +83,20 @@ public class SegmentsMap {
       this.histogram.put(keyword, frequency);
     }
 
+    public int getKeyWeightDep(String key){
+      String[] fields = key.split(Pattern.quote("+*+"));
+      double w = 1;
+      for(String field : fields){
+        if(histogram.containsKey(field)){
+          w = w * (histogram.get(field) / (double)rows);
+        }else{
+          return 0;
+        }
+      }
+      w=Math.pow(w,1.0/fields.length);
+      return (int)Math.round(rows * w);
+    }
+
     public int getKeyWeight(String key){
       //return (double)frequency[0]/rows;
 
@@ -163,6 +177,7 @@ public class SegmentsMap {
         for(String filterKey : filterKeys){
           for(WeightedItem<Segment> seg : weightedSegs){
             seg.setWeight(seg.getItem().getKeyWeight(filterKey));
+            seg.setWeightDep(seg.getItem().getKeyWeightDep(filterKey));
           }
           this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, ratio);
         }
@@ -286,6 +301,8 @@ public class SegmentsMap {
       double weight = (double)(candidate.getWeight()) / selector.getRangeSize();
       i += weight;
       this.addToSampleSegmentList(candidate.getItem(), sampleSegmentsList, key, weight);
+      double weightDep = (double)(candidate.getWeightDep())/ selector.getRangeSizeDep();
+      LOG.info("in,"+String.valueOf(weight)+",dep,"+ String.valueOf(weightDep));
     }
     
   }
