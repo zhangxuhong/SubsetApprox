@@ -86,14 +86,17 @@ public class SegmentsMap {
     public int getKeyWeightDep(String key){
       String[] fields = key.split(Pattern.quote("+*+"));
       double w = 1;
-      for(String field : fields){
-        if(histogram.containsKey(field)){
-          w = w * (histogram.get(field) / (double)rows);
-        }else{
-          return 0;
-        }
-      }
-      w=Math.pow(w,1.0/fields.length);
+      double w1 = (histogram.get(fields[0]) / (double)rows);
+      double w2 = (histogram.get(fields[1]) / (double)rows);
+      double w3 = (histogram.get(fields[2]) / (double)rows);
+      // for(String field : fields){
+      //   if(histogram.containsKey(field)){
+      //     w = w * (histogram.get(field) / (double)rows);
+      //   }else{
+      //     return 0;
+      //   }
+      // }
+      w=Math.pow(w2*w3*w1,1.0/3);
       return (int)Math.round(rows * w);
     }
 
