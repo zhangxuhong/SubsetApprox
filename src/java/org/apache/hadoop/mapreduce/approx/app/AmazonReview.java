@@ -427,7 +427,7 @@ public class AmazonReview {
 			//job.setNumReduceTasks(numReducer);
 			job.setMapperClass(AmazonReviewMapper.class);
 			job.setReducerClass(AmazonReviewReducer.class);
-
+			job.setNumReduceTasks(1);
 			job.setMapOutputKeyClass(Text.class);
 			job.setMapOutputValueClass(DoubleWritable.class);
 			job.setOutputKeyClass(Text.class);

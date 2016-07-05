@@ -71,14 +71,18 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 
 	// cluster total
 	protected ArrayList<Double> ti;
+	protected ArrayList<Double> ti2;
 	// cluster weight
 	protected ArrayList<Double> wi;
+	protected ArrayList<Double> wi2;
 	// size of each cluster
 	protected ArrayList<Long> mi;
+	protected ArrayList<Long> mi2;
 	// mean of each cluster
 	//protected ArrayList<Double> yi_mean;
 	// s2 within a cluster
 	protected ArrayList<Double> sw;
+	protected ArrayList<Double> sw2;
 
 
 	// Score based on T-student distribution for estimating the range
@@ -101,6 +105,8 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	protected double deff_p;
 	protected double deff_c;
 	protected double srsvaricne;
+
+	protected int keyIndex;
 	/**
 	 * Initialize all the variables needed for multistage sampling.
 	 */
@@ -111,6 +117,8 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		precise = approxConf.getBoolean("mapred.job.precise", false);
 
 		reducerId = context.getTaskAttemptID().getTaskID().getId();
+
+		keyIndex = 0;
 
 		// If we are approximating, we use the rest
 		if (!precise) {
@@ -154,6 +162,25 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 
 			// key need to be consistent with segmap
 			double[] result;
+			String app = approxConf.get("mapred.sampling.app", "total");
+			if (app.equals("ratio")) {
+				keyIndex++;
+				if (keyIndex == 1) {
+					ti2 = ti;
+					ti = new ArrayList<Double>();
+					wi2 = wi;
+					wi = new ArrayList<Double>();
+					mi2 = mi;
+					mi = new ArrayList<Long>();
+					//yi_mean = new ArrayList<Double>();
+					sw2 = sw;
+					sw = new ArrayList<Double>();
+				} else if (keyIndex == 2) {
+					keyIndex = 0;
+					results = bootstrapEstimate();
+				}
+			}
+
 			if (approxConf.getBoolean("mapred.sample.bootstrap", false)) {
 				result = bootstrapEstimate();
 			} else {
@@ -391,10 +418,69 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			LOG.info("interval1:" + String.valueOf(interval1));
 			double interval2 =  perc.evaluate(97.5) - total;
 			LOG.info("interval2:" + String.valueOf(interval2));
+		} else if (app.equals("ratio")) {
+			double sum1 = 0.0;
+			for (int i = 0; i < ti2.size(); i++ ) {
+				double weighted = ti2.get(i).doubleValue() / wi2.get(i).doubleValue();
+				sum1 += weighted;
+				//LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
+				//LOG.info("weighted total:" + String.valueOf(weighted));
+			}
+			total1 = sum1 / ti2.size();
+			double sum2 = 0.0;
+			for (int i = 0; i < ti.size(); i++ ) {
+				double weighted = ti.get(i).doubleValue() / wi.get(i).doubleValue();
+				sum2 += weighted;
+				//LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
+				//LOG.info("weighted total:" + String.valueOf(weighted));
+			}
+			total2 = sum2 / ti.size();
+			double ratio = total1 / total2;
+			LOG.info("ratio:" + String.valueOf(ratio));
+			double resample[] = new double[800];
+			for (int i = 0; i < 800; i++) {
+				resample[i] = resampleRatio();
+				//LOG.info("resample:" + String.valueOf(resample[i]));
+			}
+			Percentile perc = new Percentile();
+			Arrays.sort(resample);
+			perc.setData(resample);
+			double interval1 =  total - perc.evaluate(2.5);
+			LOG.info("interval1:" + String.valueOf(interval1));
+			double interval2 =  perc.evaluate(97.5) - total;
+			LOG.info("interval2:" + String.valueOf(interval2));
 		}
 		return new double[] {0, 0};
 	}
 
+	private double resampleRatio() {
+		int size = ti.size();
+		Random rnd = new Random();
+		int sample[] = new int[size];
+		for (int i = 0; i < size - 1; i++ ) {
+			sample[rnd.nextInt(size)]++;
+		}
+		double sum1 = 0.0;
+		for (int i = 0; i < size; i++ ) {
+			if (sample[i] > 0) {
+				double weighted = ti2.get(i).doubleValue() * ((1.0 / wi2.get(i).doubleValue()) * (1.0 / (size - 1)) * sample[i]);
+				sum1 += weighted;
+			}
+			//LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
+			//LOG.info("weighted total:" + String.valueOf(weighted));
+		}
+		double sum2 = 0.0;
+		for (int i = 0; i < size; i++ ) {
+			if (sample[i] > 0) {
+				double weighted = ti.get(i).doubleValue() * ((1.0 / wi.get(i).doubleValue()) * (1.0 / (size - 1)) * sample[i]);
+				sum2 += weighted;
+			}
+			//LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
+			//LOG.info("weighted total:" + String.valueOf(weighted));
+		}
+		return sum1 / sum2;
+
+	}
 	private double resampleSum() {
 		//int size = ti.size() - 1;
 		double sum = 0.0;
