@@ -27,6 +27,7 @@
     <dependency org="org.apache.commons" name="commons-lang3" rev="3.0" conf="common->default"/>
 
     <dependency org="commons-math" name="commons-math" rev="1.1" conf="common->default"/>
+    <dependency org="org.apache.commons" name="commons-math3" rev="3.6.1" conf="common->default"/>
 
     <dependency org="org.mapdb" name="mapdb" rev="1.0.1" conf="common->default"/>
 
