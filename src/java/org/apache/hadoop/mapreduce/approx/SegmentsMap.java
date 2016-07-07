@@ -168,17 +168,35 @@ public class SegmentsMap {
     Segment[] keysSegments =  this.retrieveKeyHistogram(whereKeys, groupBy, filterKeys);
     List<WeightedItem<Segment>> weightedSegs = new ArrayList<WeightedItem<Segment>>(keysSegments.length);
 
+
+
     for (Segment seg : keysSegments) {
       weightedSegs.add(new WeightedItem<Segment>(1, seg));
     }
 
+
     if (! conf.getBoolean("map.input.sampling.error", false)) {
       if (conf.getBoolean("map.input.sampling.ratio", false)) {
         double ratio = Double.parseDouble(conf.get("map.input.sample.ratio.value", "0.01"));
+        String app = conf.get("mapred.sampling.app", "total");
         for (String filterKey : filterKeys) {
-          for (WeightedItem<Segment> seg : weightedSegs) {
-            seg.setWeight(seg.getItem().getKeyWeight(filterKey));
-            //seg.setWeightDep(seg.getItem().getKeyWeightDep(filterKey));
+          if (app.equals("ratio")) {
+            double total1 = 0.0, total2 = 0.0;
+            String[] fields = filterKey.split(Pattern.quote("+*+"));
+            for (WeightedItem<Segment> seg : weightedSegs) {
+              total1 += seg.getItem().getKeyWeight(fields[0]);
+              total2 += seg.getItem().getKeyWeight(fields[1]);
+            }
+            double weight = 0.0;
+            for (WeightedItem<Segment> seg : weightedSegs) {
+              weight = (seg.getItem().getKeyWeight(fields[0]) / total1 + seg.getItem().getKeyWeight(fields[1]) / total2) * 0.5;
+              seg.setWeight((int)Math.round(100000 * weight));
+            }
+          } else {
+            for (WeightedItem<Segment> seg : weightedSegs) {
+              seg.setWeight(seg.getItem().getKeyWeight(filterKey));
+              //seg.setWeightDep(seg.getItem().getKeyWeightDep(filterKey));
+            }
           }
           this.randomProcess(weightedSegs, sampleSegmentsList, filterKey, ratio);
         }

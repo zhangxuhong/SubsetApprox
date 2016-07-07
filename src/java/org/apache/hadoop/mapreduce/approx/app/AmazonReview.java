@@ -176,7 +176,16 @@ public class AmazonReview {
 				JSONObject salesRank = (JSONObject)line.get("salesRank");
 				Set<String> keyset = (Set<String>)salesRank.keySet();
 				for (String categ : keyset) {
-					if (categ.equals(filter1)) {
+					if (context.getConfiguration().get("mapred.sampling.app", "total").equals("ratio")) {
+						if (categ.equals(filter1) || categ.equals(filter2)) {
+							if (line.containsKey("reviewText")) {
+								DoubleWritable quantity = new DoubleWritable(0.0);
+								String price = (String)line.get("reviewText");
+								quantity.set(price.length());
+								context.write(new Text(categ), quantity);
+							}
+						}
+					} else if (categ.equals(filter1)) {
 						if (!filter4.equals("") && line.containsKey("categories") && line.containsKey("helpful")
 						        && line.containsKey("overall")) {
 
@@ -251,7 +260,8 @@ public class AmazonReview {
 				sum += val.get();
 				count++;
 			}
-			if (context.getConfiguration().get("mapred.sampling.app", "total").equals("total")) {
+			if (context.getConfiguration().get("mapred.sampling.app", "total").equals("total") ||
+			        context.getConfiguration().get("mapred.sampling.app", "total").equals("ratio")) {
 				result.set(sum);
 			} else {
 				result.set(sum / count);

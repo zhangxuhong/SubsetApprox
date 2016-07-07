@@ -44,6 +44,7 @@ import org.apache.hadoop.mapreduce.approx.ApproximateIntWritable;
 import org.apache.hadoop.mapreduce.approx.ApproximateDoubleWritable;
 
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
+import org.apache.commons.math3.distribution.NormalDistribution;
 
 import org.apache.log4j.Logger;
 
@@ -95,6 +96,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 	protected double variance;
 	//protected double s2;
 	protected long totalSize = 0;
+	protected long totalSize2 = 0;
 	protected boolean isWeight;
 
 	protected double msb;
@@ -131,7 +133,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			error = Double.parseDouble(approxConf.get("mapred.job.error", "0.01"));
 			confidence = Double.parseDouble(approxConf.get("mapred.job.confidence", "-1.0"));
 			if (confidence > 0) {
-				tscore = getTScore(totalSize - 1, confidence);
+				//tscore = getTScore(totalSize - 1, confidence);
 			}
 		}
 	}
@@ -161,7 +163,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		public void saveCurrentResult() throws IOException, InterruptedException {
 
 			// key need to be consistent with segmap
-			double[] result;
+			double[] result = new double[] {0, 0};
 			String app = approxConf.get("mapred.sampling.app", "total");
 			if (app.equals("ratio")) {
 				keyIndex++;
@@ -175,13 +177,14 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 					//yi_mean = new ArrayList<Double>();
 					sw2 = sw;
 					sw = new ArrayList<Double>();
+					totalSize2 = totalSize;
+					totalSize = 0;
+					return;
 				} else if (keyIndex == 2) {
 					keyIndex = 0;
-					results = bootstrapEstimate();
+					result = bootstrapEstimate();
 				}
-			}
-
-			if (approxConf.getBoolean("mapred.sample.bootstrap", false)) {
+			} else if (approxConf.getBoolean("mapred.sample.bootstrap", false)) {
 				result = bootstrapEstimate();
 			} else {
 				result = estimateCurrentResult();
@@ -420,13 +423,15 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			LOG.info("interval2:" + String.valueOf(interval2));
 		} else if (app.equals("ratio")) {
 			double sum1 = 0.0;
+			LOG.info("ti2:" + String.valueOf(ti2.size()));
+			LOG.info("wi2:" + String.valueOf(wi2.size()));
 			for (int i = 0; i < ti2.size(); i++ ) {
 				double weighted = ti2.get(i).doubleValue() / wi2.get(i).doubleValue();
 				sum1 += weighted;
 				//LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
 				//LOG.info("weighted total:" + String.valueOf(weighted));
 			}
-			total1 = sum1 / ti2.size();
+			double total1 = sum1 / ti2.size();
 			double sum2 = 0.0;
 			for (int i = 0; i < ti.size(); i++ ) {
 				double weighted = ti.get(i).doubleValue() / wi.get(i).doubleValue();
@@ -434,7 +439,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 				//LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
 				//LOG.info("weighted total:" + String.valueOf(weighted));
 			}
-			total2 = sum2 / ti.size();
+			double total2 = sum2 / ti.size();
 			double ratio = total1 / total2;
 			LOG.info("ratio:" + String.valueOf(ratio));
 			double resample[] = new double[800];
@@ -444,15 +449,70 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 			}
 			Percentile perc = new Percentile();
 			Arrays.sort(resample);
-			perc.setData(resample);
-			double interval1 =  total - perc.evaluate(2.5);
+			//perc.setData(resample);
+			double percent = 0.0;
+			for (int i = 0; i < resample.length; i++) {
+				if (resample[i] < ratio) {
+					percent = percent + 1;
+				}
+			}
+			percent = percent / resample.length;
+			NormalDistribution normDist = new NormalDistribution();
+			double z0 = normDist.inverseCumulativeProbability(percent);
+			double a = estimateA(ti2.size());
+			double left  = z0 + (z0 - 1.960) / (1 - a * (z0 - 1.960));
+			double right = z0 + (z0 + 1.960) / (1 - a * (z0 + 1.960));
+			left = normDist.cumulativeProbability(left) * 100;
+			right = normDist.cumulativeProbability(right) * 100;
+			LOG.info("left:" + String.valueOf(left));
+			LOG.info("right:" + String.valueOf(right));
+			//left = 2.5;
+			//right = 97.5;
+			double interval1 =  ratio - perc.evaluate(resample, left);
 			LOG.info("interval1:" + String.valueOf(interval1));
-			double interval2 =  perc.evaluate(97.5) - total;
+			double interval2 =  perc.evaluate(resample, right) - ratio;
 			LOG.info("interval2:" + String.valueOf(interval2));
 		}
 		return new double[] {0, 0};
 	}
+	private double estimateA(int size) {
+		double[] jackknife = new double[size];
+		for (int j = 0; j < size; j++) {
+			double sum1 = 0.0;
+			for (int i = 0; i < ti2.size(); i++ ) {
+				if (i == j) continue;
+				double weighted = ti2.get(i).doubleValue() / wi2.get(i).doubleValue();
+				sum1 += weighted;
+				//LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
+				//LOG.info("weighted total:" + String.valueOf(weighted));
+			}
+			double total1 = sum1 / ti2.size();
+			double sum2 = 0.0;
+			for (int i = 0; i < ti.size(); i++ ) {
+				if (i == j) continue;
+				double weighted = ti.get(i).doubleValue() / wi.get(i).doubleValue();
+				sum2 += weighted;
+				//LOG.info("ti/wi:" + String.valueOf(ti.get(i).doubleValue()) + "/" + String.valueOf(wi.get(i).doubleValue()));
+				//LOG.info("weighted total:" + String.valueOf(weighted));
+			}
+			double total2 = sum2 / ti.size();
+			jackknife[j] = total1 / total2;
+		}
+		double avg_jack = 0.0;
+		for (int i = 0; i < size; i++) {
+			avg_jack += jackknife[i];
+		}
+		avg_jack = avg_jack / size;
+		double nominator = 0.0;
+		double denominator = 0.0;
+		for (int i = 0; i < size; i++) {
+			nominator += Math.pow((avg_jack - jackknife[i]), 3);
+			denominator += Math.pow((avg_jack - jackknife[i]), 2);
+		}
 
+		return 1.0 / 6 * (nominator / Math.pow(denominator, 1.5));
+
+	}
 	private double resampleRatio() {
 		int size = ti.size();
 		Random rnd = new Random();
@@ -724,7 +784,7 @@ public abstract class ApproximateReducer<KEYIN extends Text, VALUEIN, KEYOUT, VA
 		String app = approxConf.get("mapred.sampling.app", "total");
 		double sum = 0.0;
 		long numRecords = 0;
-		if (app.equals("total")) {
+		if (app.equals("total") || app.equals("ratio")) {
 			for (VALUEIN value : values) {
 				double val = 0.0;
 				if (value instanceof LongWritable) {
