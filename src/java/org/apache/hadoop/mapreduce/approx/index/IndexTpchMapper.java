@@ -41,6 +41,8 @@ public class IndexTpchMapper extends Mapper<LongWritable, Text, Text, Text>{
 	private String[] indexFields;
 	private List<Hashtable<String, Long>> histogram;
 	private List<Hashtable<String, Long>> preHistogram;
+	private List<Hashtable<String, Double>> stat;
+	private List<Hashtable<String, Double>> preStat;
 	private long segPosition;
 	private long preSegPosition;
 	private JSONParser parser;
@@ -58,10 +60,13 @@ public class IndexTpchMapper extends Mapper<LongWritable, Text, Text, Text>{
 		//LOG.info("delimiter:"+delimiter);
 		indexFields = conf.get("map.input.index.fields", "0").split("-");
 		histogram  = new ArrayList<Hashtable<String, Long>>(indexFields.length);
+		stat = new ArrayList<Hashtable<String, Double>>(indexFields.length);
 		for(int i = 0; i < indexFields.length; i++){
 			histogram.add(new Hashtable<String, Long>());
+			stat.add(new Hashtable<String, Double>());
 		}
 		preHistogram = null;
+		preStat = null;
 	}
 	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 		
@@ -95,17 +100,21 @@ public class IndexTpchMapper extends Mapper<LongWritable, Text, Text, Text>{
 					Set<Entry<String, Long>> entries =  preHistogram.get(i).entrySet();
 					for(Entry<String, Long> ent : entries){
 						context.write(new Text(ent.getKey() + "++" + String.valueOf(preSegPosition) + "--" + String.valueOf(i)), 
-							new Text(String.format("%d,%d,%d,%d", 
-								preSegPosition, segPosition - preSegPosition, segSize, ent.getValue().longValue())));
+							new Text(String.format("%d,%d,%d,%d,%s", 
+								preSegPosition, segPosition - preSegPosition, segSize, ent.getValue().longValue(),
+								preStat.get(i).get(ent.getKey()).doubleValue())));
 						//LOG.info("entry:" + ent.getKey());
 					}
 				}
 			}
 			preSegPosition = segPosition;
 			preHistogram = histogram;
+			preStat = stat;
 			histogram = new ArrayList<Hashtable<String, Long>>(indexFields.length);
+			stat = new ArrayList<Hashtable<String, Double>>(indexFields.length);
 			for(int i = 0; i < indexFields.length; i++){
 				histogram.add(new Hashtable<String, Long>());
+				stat.add(new Hashtable<String, Double>());
 			}
 			recordCount = 0;
 		}
@@ -118,17 +127,21 @@ public class IndexTpchMapper extends Mapper<LongWritable, Text, Text, Text>{
 		
 		String keyword = "";
 		String[] line = value.toString().split(Pattern.quote(delimiter));
+		Double price = Double.parseDouble(line[5]);
 			for(int i = 0; i < indexFields.length; i++){
 				int index = Integer.parseInt(indexFields[i]);
 				keyword = "";
 				keyword = line[index];
 				//LOG.info("keyword:" + keyword);
 				Long preValue = histogram.get(i).get(keyword);
+				Double sum = stat.get(i).get(keyword);
 				if(preValue != null){
 					histogram.get(i).put(keyword, preValue + 1);
+					stat.get(i).put(keyword, sum + price);
 				}
 				else{
 					histogram.get(i).put(keyword, new Long(1));
+					stat.get(i).put(keyword, price);
 				}
 		}
 		recordCount++;
@@ -159,11 +172,14 @@ public class IndexTpchMapper extends Mapper<LongWritable, Text, Text, Text>{
 			  	Set<Entry<String, Long>> entries =  histogram.get(i).entrySet();
 			  	for(Entry<String, Long> ent : entries){
 			  		Long value = preHistogram.get(i).get(ent.getKey());
+			  		Double sum = preStat.get(i).get(ent.getKey());
 			  		if(value != null){
 			  			preHistogram.get(i).put(ent.getKey(), value + ent.getValue());
+			  			preStat.get(i).put(ent.getKey(), sum + stat.get(i).get(ent.getKey()));
 			  		}
 			  		else{
 			  			preHistogram.get(i).put(ent.getKey(), ent.getValue());
+			  			preStat.get(i).put(ent.getKey(), stat.get(i).get(ent.getKey()));
 			  		}
 			  	}
 			  	Set<Entry<String, Long>> pEntries =  preHistogram.get(i).entrySet();
@@ -171,8 +187,9 @@ public class IndexTpchMapper extends Mapper<LongWritable, Text, Text, Text>{
 			  	long currentPosition = split.getStart() + split.getLength();
 				for(Entry<String, Long> ent : pEntries){
 					context.write(new Text(ent.getKey()  + "++" + String.valueOf(preSegPosition) + "--" + String.valueOf(i)), 
-						new Text(String.format("%d,%d,%d,%d", 
-							preSegPosition, currentPosition - preSegPosition, segSize + recordCount, ent.getValue().longValue())));
+						new Text(String.format("%d,%d,%d,%d,%s", 
+							preSegPosition, currentPosition - preSegPosition, segSize + recordCount, ent.getValue().longValue(), 
+							preStat.get(i).get(ent.getKey()).doubleValue())));
 				}
 		  	}
 		  }
