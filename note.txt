@@ -261,3 +261,9 @@ on small data, quite clustered.
 2015-10-15 18:30:02,772 INFO Subset.Reducer:error:5715969.4348595105
 2015-10-15 18:30:02,820 INFO Subset.Reducer:deff_p:0.9999999999999827
 2015-10-15 18:30:02,820 INFO Subset.Reducer:totalSize:3603756
+
+
+
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.index.IndexAmazon -s 1000 -f 4 -t gamazon1k -i /amazon/review/
+
+hadoop jar hadoop-SubsetApprox-1.2.1.jar org.apache.hadoop.mapreduce.approx.index.IndexTpch -s 10000 -f 14 -t gtpch10k -i /tpch/skew1.5/
