@@ -245,14 +245,14 @@ public class IndexAmazonMapper extends Mapper<LongWritable, Text, Text, Text>{
 							Set<String> keyset = (Set<String>)salesRank.keySet();
 							for(String categ: keyset){
 								Long preValue = histogram.get(i).get(categ);
-								Double sum = stat.get(i).get(keyword);
+								Double sum = stat.get(i).get(categ);
 								if(preValue != null){
-									histogram.get(i).put(keyword, preValue + 1);
-									stat.get(i).put(keyword, sum + reviewLen);
+									histogram.get(i).put(categ, preValue + 1);
+									stat.get(i).put(categ, sum + reviewLen);
 								}
 								else{
-									histogram.get(i).put(keyword, new Long(1));
-									stat.get(i).put(keyword, reviewLen);
+									histogram.get(i).put(categ, new Long(1));
+									stat.get(i).put(categ, reviewLen);
 								}
 							}
 						}
