@@ -1,5 +1,6 @@
 Building an general purpose approximation mechanism in Hadoop, support approximations on any subset of the original data set.
 
+Here is a [link](https://zhangxuhong.github.io/paper/sapprox.pdf) to the research paper of this project published on VLDB 2017
 
 Acknowledgement
 
